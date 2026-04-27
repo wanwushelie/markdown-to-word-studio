@@ -67,20 +67,21 @@ The config system uses **Zod** schemas with sensible defaults. Key config areas:
 
 | Config / 配置 | Default / 默认值 | Description / 描述 |
 |---|---|---|
-| `font.body` | Microsoft YaHei | Body text font / 正文字体 |
-| `font.heading` | SimHei | Heading font / 标题字体 |
-| `font.english` | Times New Roman | English font / 英文字体 |
-| `font.code` | Consolas | Code font / 代码字体 |
-| `size.body` | 11pt | Body font size / 正文字号 |
+| `font.body` | Microsoft YaHei | Body text font (East Asian) / 正文字体（中日韩） |
+| `font.heading` | SimHei | Heading font (East Asian) / 标题字体（中日韩） |
+| `font.english` | Times New Roman | English text font (ASCII) / 英文字体（数字英文） |
+| `font.code` | Consolas | Code block font / 代码字体 |
+| `size.body/code` | 11pt/10pt | Body & Code font size / 正文与代码字号 |
 | `size.heading1-6` | 22-11pt | Heading sizes / 标题字号 |
-| `spacing.lineSpacing` | 1.5 | Line spacing / 行间距 |
-| `margin.*` | 1440 twips (1 inch) | Page margins / 页边距 |
+| `spacing.*` | line: 1.5, para: 6pt | Line, paragraph & heading spacing / 行间距、段落、标题间距 |
+| `margin.*` | top/bottom/left/right | Independent page margins / 上下左右独立页边距 |
 | `pageSize` | A4 | Page size / 纸张大小 |
 | `orientation` | portrait | Orientation / 页面方向 |
-| `color.heading` | 000000 | Heading color / 标题颜色 |
-| `color.link` | 0563C1 | Link color / 链接颜色 |
+| `color.*` | heading, text, link, codeBg | Specific color settings / 特定元素的颜色设置 |
 | `image.maxWidthPercent` | 80% | Max image width / 最大图片宽度 |
 | `image.defaultAlign` | center | Image alignment / 图片对齐 |
+
+> **Smart Config Import**: Allows generating configuration using AI with `CONFIG_SPEC.md` and pasting the result (Key-Value, JSON, or Natural Language) into the UI for auto-filling settings.
 
 ---
 
@@ -142,9 +143,11 @@ Single-page app in `public/index.html` with three resizable columns:
      PDF 预览（高保真）— 服务端 docx → LibreOffice → PDF，完美分页
    - **Collabora (Edit)** — WOPI protocol, full editing in Collabora Online  
      Collabora（编辑）— WOPI 协议，Collabora Online 中完整编辑
-3. **Config** — Typography (body/heading fonts, H1-H6 sizes), colors (heading/link/code BG/quote border), page layout, header/footer, images  
-   配置 — 排版（正文/标题字体、H1-H6 字号）、颜色（标题/链接/代码背景/引用边框）、页面布局、页眉页脚、图片
-4. **Auto-Preview** — Debounced auto-refresh (800ms) on editor input or config change, toggleable checkbox  
+3. **Config** — Typography (fonts, sizes, spacing), Colors, Page layout (margins, paper size), Header/Footer, Images  
+   配置 — 排版（字体、字号、间距）、颜色、页面布局（页边距、纸张）、页眉页脚、图片
+4. **Smart Config Import** — Paste AI-generated config text (JSON, Key-Value, Natural Language) to auto-fill all UI controls, with preset templates support.  
+   智能配置导入 — 粘贴 AI 生成的配置文本（JSON、键值对、自然语言），自动填充所有 UI 控件，支持预设模板。
+5. **Auto-Preview** — Debounced auto-refresh (800ms) on editor input or config change, toggleable checkbox  
    自动预览 — 输入或配置变更后防抖自动刷新（800ms），可切换复选框
 
 ---
