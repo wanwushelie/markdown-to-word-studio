@@ -1,0 +1,28 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - CODE_URL=http://host.docker.internal:9980
+      - PUBLIC_APP_URL=http://host.docker.internal:3000
+      - WOPI_SECRET=${WOPI_SECRET}
+      - TEMP_DIR=/app/tmp
+    volumes:
+      - app_tmp:/app/tmp
+
+  collabora:
+    image: collabora/code:latest
+    ports:
+      - "9980:9980"
+    environment:
+      - domain=host\.docker\.internal\:3000
+      - username=${CODE_ADMIN_USER:-admin}
+      - password=${CODE_ADMIN_PASS:-secret}
+      - extra_params=--o:ssl.enable=false
+    cap_add:
+      - MKNOD
+
+volumes:
+  app_tmp:

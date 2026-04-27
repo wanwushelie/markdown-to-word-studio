@@ -56,6 +56,10 @@
     .preview-toolbar button:hover { background: #f0f0f0; }
     .preview-toolbar button.primary { background: #3498db; color: white; border-color: #3498db; }
     .preview-toolbar button.primary:hover { background: #2980b9; }
+    .preview-toolbar button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
     .preview-error {
       padding: 20px;
       color: #e74c3c;
@@ -82,7 +86,7 @@
 <body>
   <div class="header">
     <h1>Markdown to Word Converter</h1>
-    <span style="font-size: 12px; opacity: 0.8;">TypeScript + docx.js</span>
+    <span style="font-size: 12px; opacity: 0.8;">TypeScript + docx.js + Collabora</span>
   </div>
 
   <div class="container">
@@ -156,17 +160,23 @@ Visit [OpenAI](https://openai.com) for more info.
     <div class="preview-col">
       <div class="col-header">
         Preview
-        <span class="tag" style="background:#e8f8f0;color:#27ae60;">PDF</span>
+        <span class="tag" style="background:#f3e8fd;color:#8e44ad;">Collabora</span>
       </div>
       <div class="preview-toolbar">
-        <button id="refreshBtn" onclick="refreshPreview()">
+        <button id="refreshBtn" onclick="refreshEditor()">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          Refresh PDF
+          Refresh Editor
+        </button>
+        <button id="downloadBtn" onclick="downloadDocx()" disabled>
+          Download .docx
+        </button>
+        <button id="exportPdfBtn" onclick="exportPdf()" disabled>
+          Export PDF
         </button>
         <span id="previewStatus" style="font-size:11px;color:#888;margin-left:auto;">Ready</span>
       </div>
       <div id="preview-wrap">
-        <iframe id="preview"></iframe>
+        <iframe id="preview" allow="fullscreen; clipboard-read; clipboard-write"></iframe>
       </div>
     </div>
 
@@ -267,10 +277,12 @@ Visit [OpenAI](https://openai.com) for more info.
     const statusEl = document.getElementById('status');
     const convertBtn = document.getElementById('convertBtn');
     const refreshBtn = document.getElementById('refreshBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
     const previewStatusEl = document.getElementById('previewStatus');
 
-    let previewBlobUrl = null;
-    let debounceTimer = null;
+    let currentFileId = null;
+    let currentAccessToken = null;
 
     const configEls = {
       bodyFont: document.getElementById('bodyFont'),
@@ -326,7 +338,7 @@ Visit [OpenAI](https://openai.com) for more info.
       };
     }
 
-    async function refreshPreview() {
+    async function refreshEditor() {
       const markdown = markdownEl.value;
       if (!markdown.trim()) {
         showToast('Please enter some Markdown content', 'error');
@@ -334,7 +346,7 @@ Visit [OpenAI](https://openai.com) for more info.
       }
 
       refreshBtn.disabled = true;
-      previewStatusEl.textContent = 'Generating PDF...';
+      previewStatusEl.textContent = 'Generating...';
 
       try {
         const response = await fetch('/api/preview', {
@@ -345,39 +357,30 @@ Visit [OpenAI](https://openai.com) for more info.
 
         if (!response.ok) {
           const error = await response.json();
-          if (response.status === 503 && error.error === 'LibreOffice not found') {
-            previewEl.srcdoc = `<div class="preview-error"><strong>LibreOffice not installed</strong><br>${error.message}<br><br>Please install LibreOffice to enable PDF preview.</div>`;
-            throw new Error('LibreOffice not found');
+          if (response.status === 503) {
+            previewEl.srcdoc = `<div class="preview-error"><strong>Collabora Online unavailable</strong><br>${error.message || 'Please ensure docker-compose is running.'}</div>`;
+            throw new Error('Collabora unavailable');
           }
           throw new Error(error.message || 'Preview generation failed');
         }
 
-        const blob = await response.blob();
-        if (previewBlobUrl) {
-          window.URL.revokeObjectURL(previewBlobUrl);
-        }
-        previewBlobUrl = window.URL.createObjectURL(blob);
-        previewEl.src = previewBlobUrl;
+        const data = await response.json();
+        currentFileId = data.fileId;
+        currentAccessToken = data.accessToken;
+        previewEl.src = data.collaboraUrl;
+        downloadBtn.disabled = false;
+        exportPdfBtn.disabled = false;
         previewStatusEl.textContent = 'Ready';
-        showToast('PDF preview updated');
+        showToast('Editor loaded');
       } catch (err) {
         previewStatusEl.textContent = 'Error';
-        if (err.message !== 'LibreOffice not found') {
+        if (err.message !== 'Collabora unavailable') {
           showToast(err.message, 'error');
         }
       } finally {
         refreshBtn.disabled = false;
       }
     }
-
-    function debouncedRefreshPreview() {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => refreshPreview(), 800);
-    }
-
-    Object.values(configEls).forEach(el => {
-      el.addEventListener('change', debouncedRefreshPreview);
-    });
 
     function insertText(before, after) {
       const start = markdownEl.selectionStart;
@@ -398,6 +401,60 @@ Visit [OpenAI](https://openai.com) for more info.
       toast.className = `toast ${type}`;
       toast.style.display = 'block';
       setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    async function downloadDocx() {
+      if (!currentFileId || !currentAccessToken) {
+        showToast('Please refresh the editor first', 'error');
+        return;
+      }
+      try {
+        const response = await fetch(`/api/files/${currentFileId}/download?access_token=${encodeURIComponent(currentAccessToken)}`);
+        if (!response.ok) throw new Error('Download failed');
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${getMeta().title}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        showToast('Document downloaded');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function exportPdf() {
+      if (!currentFileId || !currentAccessToken) {
+        showToast('Please refresh the editor first', 'error');
+        return;
+      }
+      exportPdfBtn.disabled = true;
+      try {
+        const response = await fetch(`/api/files/${currentFileId}/export/pdf?access_token=${encodeURIComponent(currentAccessToken)}`, {
+          method: 'POST',
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Export failed');
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${getMeta().title}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        showToast('PDF exported');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        exportPdfBtn.disabled = false;
+      }
     }
 
     async function convert() {
@@ -445,6 +502,22 @@ Visit [OpenAI](https://openai.com) for more info.
         document.body.classList.remove('loading');
       }
     }
+
+    // Listen for PostMessage events from Collabora iframe
+    window.addEventListener('message', (e) => {
+      if (!e.data || typeof e.data !== 'string') return;
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.MessageId === 'App_LoadingStatus' && msg.Values && msg.Values.Status === 'Document_Loaded') {
+          previewStatusEl.textContent = 'Editor ready';
+        }
+        if (msg.MessageId === 'Action_Save_Resp' && msg.Values && msg.Values.success) {
+          showToast('Document saved in editor');
+        }
+      } catch (_) {
+        // ignore non-JSON messages
+      }
+    });
   </script>
 </body>
 </html>
