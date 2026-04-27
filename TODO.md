@@ -36,23 +36,29 @@
 
 ---
 
-## 🔴 Next Up — High Impact / 下一步 — 高影响
-
 ### Auto-Preview on Input / 输入自动预览
-- ⬜ Auto-refresh preview when user stops typing (debounced ~1.5s)
-- 用户停止输入后自动刷新预览（防抖 ~1.5 秒）
-- ⬜ Auto-refresh preview when config changes
-- 配置变更时自动刷新预览
+- ✅ Auto-refresh preview when user stops typing (debounced ~1.5s)
+- ✅ Auto-refresh preview when config changes
+- File: `public/index.html`
 
 ### Enhanced Config Panel / 增强配置面板
-- ⬜ Add heading size controls (H1-H6 individual size inputs)
-- 添加标题大小控制（H1-H6 单独的大小输入）
-- ⬜ Add color pickers for heading, text, link, code background colors
-- 添加标题、文本、链接、代码背景颜色的颜色选择器
-- ⬜ Add header/footer text configuration
-- 添加页眉/页脚文本配置
-- ⬜ Add page number toggle
-- 添加页码开关
+- ✅ Add heading size controls (H1-H6 individual size inputs)
+- ✅ Add color pickers for heading, text, link, code background colors
+- ✅ Add header/footer text configuration
+- ✅ Add page number toggle
+- File: `public/index.html`
+
+### HTML Creative Mode & Editor / HTML 创意模式与编辑器
+- ✅ Add pure HTML instant preview mode via markdown-it
+- ✅ Add 4 creative CSS templates (Modern Dark, Glassmorphism, Editorial, Neon Cyber)
+- ✅ Use CodeMirror 5 instead of plain textarea
+- ✅ Add Markdown syntax highlighting
+- ✅ Add keyboard shortcuts (Ctrl+B, Ctrl+I, Ctrl+S)
+- File: `public/index.html`
+
+---
+
+## 🔴 Next Up — High Impact / 下一步 — 高影响
 
 ### Style Templates / 样式模板
 - ⬜ Add preset templates (Academic Paper, Report, Resume, etc.)
@@ -63,14 +69,6 @@
 ---
 
 ## 🟡 Medium Priority / 中等优先级
-
-### Better Editor / 更好的编辑器
-- ⬜ Use Monaco or CodeMirror instead of plain textarea
-- 使用 Monaco 或 CodeMirror 替代纯 textarea
-- ⬜ Add Markdown syntax highlighting
-- 添加 Markdown 语法高亮
-- ⬜ Add keyboard shortcuts (Ctrl+B, Ctrl+I, Ctrl+S, etc.)
-- 添加键盘快捷键（Ctrl+B、Ctrl+I、Ctrl+S 等）
 
 ### Chinese Typography / 中文排版
 - ⬜ Auto-detect Chinese/English text and apply different fonts per segment

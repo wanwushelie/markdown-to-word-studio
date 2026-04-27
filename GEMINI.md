@@ -21,10 +21,11 @@ A Markdown to Word (.docx) converter with customizable styling, real-time previe
 | Schema Validation / 模式验证 | Zod |
 | Image Processing / 图像处理 | sharp |
 | PDF Export / PDF 导出 | libreoffice-convert |
-| Preview / 预览 | Collabora Online (WOPI) |
+| Preview / 预览 | Collabora Online (WOPI), docx-preview, markdown-it, LibreOffice |
+| Editor / 编辑器 | CodeMirror 5 (Markdown mode) |
 | Testing / 测试 | Vitest |
 | Container / 容器 | Docker + docker-compose |
-| Frontend / 前端 | Vanilla HTML/CSS/JS (single page in `public/index.html`) |
+| Frontend / 前端 | Vanilla HTML/CSS/JS + CodeMirror + markdown-it (single page in `public/index.html`) |
 
 ---
 
@@ -127,12 +128,24 @@ Preview uses Collabora Online via WOPI protocol:
 Single-page app in `public/index.html` with three resizable columns:  
 单页应用，位于 `public/index.html`，三列可调整大小：
 
-1. **Editor** — Markdown textarea with toolbar  
-   编辑器 — 带工具栏的 Markdown 文本区域
-2. **Preview** — Three modes: Local (docx-preview), PDF (LibreOffice), Collabora (WOPI)  
-   预览 — 三种模式：本地（docx-preview）、PDF（LibreOffice）、Collabora（WOPI）
-3. **Config** — Typography, page layout, image settings  
-   配置 — 排版、页面布局、图片设置
+1. **Editor** — CodeMirror 5 with Markdown syntax highlighting, line numbers, keyboard shortcuts (Ctrl+B/I/S)  
+   编辑器 — CodeMirror 5，Markdown 语法高亮、行号、快捷键（Ctrl+B/I/S）
+2. **Preview** — Five modes:  
+   预览 — 五种模式：
+   - **Markdown (Instant)** — Client-side markdown-it → clean HTML, zero latency  
+     Markdown（即时）— 客户端 markdown-it → 干净 HTML，零延迟
+   - **HTML Creative ✨** — markdown-it + 4 CSS templates (Modern Dark, Glassmorphism, Editorial, Neon Cyber)  
+     HTML 创意 ✨ — markdown-it + 4 款 CSS 模板（现代暗黑、毛玻璃、复古杂志、赛博朋克）
+   - **Docx Preview (Fast)** — Server-side docx → docx-preview in-browser rendering  
+     Docx 预览（快速）— 服务端 docx → docx-preview 浏览器渲染
+   - **PDF Preview (Hi-Fi)** — Server-side docx → LibreOffice → PDF, perfect pagination  
+     PDF 预览（高保真）— 服务端 docx → LibreOffice → PDF，完美分页
+   - **Collabora (Edit)** — WOPI protocol, full editing in Collabora Online  
+     Collabora（编辑）— WOPI 协议，Collabora Online 中完整编辑
+3. **Config** — Typography (body/heading fonts, H1-H6 sizes), colors (heading/link/code BG/quote border), page layout, header/footer, images  
+   配置 — 排版（正文/标题字体、H1-H6 字号）、颜色（标题/链接/代码背景/引用边框）、页面布局、页眉页脚、图片
+4. **Auto-Preview** — Debounced auto-refresh (800ms) on editor input or config change, toggleable checkbox  
+   自动预览 — 输入或配置变更后防抖自动刷新（800ms），可切换复选框
 
 ---
 
@@ -186,9 +199,11 @@ npm test
    ~~删除线作为纯文本~~ ✅ 已修复：`strike: true`
 5. **Image fallback** — Failed images render as empty 1x1 pixel image  
    图片降级 — 失败的图片渲染为空的 1x1 像素图像
-6. ~~**Collabora dependency** — Preview requires Collabora Online~~ ✅ Fixed: 3 preview modes  
-   ~~预览需要 Collabora~~ ✅ 已修复：3 种预览模式
+6. ~~**Collabora dependency** — Preview requires Collabora Online~~ ✅ Fixed: 5 preview modes  
+   ~~预览需要 Collabora~~ ✅ 已修复：5 种预览模式
 7. **PDF export** — Requires LibreOffice installed on server  
    PDF 导出 — 需要服务器安装 LibreOffice
-8. **Frontend** — Single HTML file, no build toolchain, no component system  
-   前端 — 单个 HTML 文件，无构建工具链，无组件系统
+8. **Frontend** — Single HTML file (~1000 lines), no build toolchain, no component system  
+   前端 — 单个 HTML 文件（约 1000 行），无构建工具链，无组件系统
+9. **HTML Creative templates** — 4 built-in templates, no custom template editor yet  
+   HTML 创意模板 — 4 个内置模板，尚无自定义模板编辑器

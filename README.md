@@ -8,11 +8,14 @@
 
 - 📝 **Markdown 解析** — 基于 markdown-it，支持 CommonMark + 表格扩展
 - 📄 **Word 文档生成** — 使用 docx.js 生成标准 .docx 文件
-- 🎨 **样式可配置** — 字体、字号、行间距、页边距、颜色等全面可定制
+- 🎨 **样式可配置** — 字体、H1-H6 字号、行间距、页边距、颜色、页眉页脚等全面可定制
 - 🖼️ **图片支持** — 本地文件和远程 URL 图片自动嵌入，支持缩放和对齐
 - 📊 **表格支持** — Markdown 表格自动转换为 Word 表格
+- ✏️ **专业编辑器** — CodeMirror 5，Markdown 语法高亮、行号、快捷键（Ctrl+B/I/S）
 - 🌐 **Web 界面** — 三栏布局（编辑器 + 预览 + 配置），支持拖拽调整大小
-- 👁️ **三种预览模式** — 支持本地极速预览 (docx-preview)、高保真 PDF 预览，以及 Collabora 在线编辑预览
+- 👁️ **五种预览模式** — Markdown 即时预览、HTML 创意模板（4 款）、Docx 快速预览、PDF 高保真预览、Collabora 编辑
+- 🔄 **自动预览** — 输入或配置变更后防抖自动刷新（800ms）
+- 🎨 **HTML 创意模板** — Modern Dark、Glassmorphism、Editorial、Neon Cyber，超越 Word 的创意渲染
 - 📥 **一键下载** — 直接下载生成的 .docx 文件
 - 📋 **PDF 导出** — 通过 LibreOffice 导出 PDF（需安装 LibreOffice）
 - 🔧 **CLI 工具** — 命令行接口，支持批量转换
@@ -53,7 +56,7 @@ markdowntoword/
 │       ├── units.ts          # Unit conversions (px→EMU, pt→halfPt, pt→twip)
 │       └── image.ts          # Image reading (local/remote) and dimension scaling
 ├── public/
-│   └── index.html            # Web UI (single-page, three-column layout)
+│   └── index.html            # Web UI (CodeMirror editor + 5-mode preview + config panel)
 ├── tests/
 │   ├── unit/
 │   │   ├── core/config.test.ts
