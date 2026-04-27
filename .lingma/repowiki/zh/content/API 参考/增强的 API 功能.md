@@ -7,15 +7,15 @@
 - [src/routes/api.ts](file://src/routes/api.ts)
 - [src/cli.ts](file://src/cli.ts)
 - [src/core/config.ts](file://src/core/config.ts)
-- [src/core/types.ts](file://src/core/types.ts)
-- [src/generator/index.ts](file://src/generator/index.ts)
 - [src/generator/document-builder.ts](file://src/generator/document-builder.ts)
 - [src/parser/index.ts](file://src/parser/index.ts)
-- [src/parser/tokenize.ts](file://src/parser/tokenize.ts)
-- [src/parser/transformer.ts](file://src/parser/transformer.ts)
 - [src/wopi/index.ts](file://src/wopi/index.ts)
 - [src/wopi/token.ts](file://src/wopi/token.ts)
 - [src/wopi/storage.ts](file://src/wopi/storage.ts)
+- [src/wopi/discovery.ts](file://src/wopi/discovery.ts)
+- [src/generator/renderers/block.ts](file://src/generator/renderers/block.ts)
+- [src/generator/styles.ts](file://src/generator/styles.ts)
+- [src/core/types.ts](file://src/core/types.ts)
 - [package.json](file://package.json)
 </cite>
 
@@ -32,51 +32,53 @@
 
 ## 简介
 
-这是一个基于 Node.js 的 Markdown 到 Word 文档转换器，提供了完整的 API 功能集，支持在线转换、预览、PDF 导出以及 WOPIServer 协议集成。该系统采用模块化设计，包含解析器、生成器、配置管理等核心组件，为用户提供从 Markdown 内容到格式化 DOCX 文档的完整转换流程。
+这是一个基于 Node.js 的 Markdown 到 Word 文档转换器，提供了完整的 API 功能集，支持多种输出格式和协作编辑能力。该系统通过 Express.js 提供 RESTful API 接口，支持实时预览、PDF 导出、WOPIServer 协议集成等功能。
+
+主要特性包括：
+- Markdown 到 DOCX 格式的转换
+- 实时在线预览（基于 Collabora Online）
+- PDF 格式导出
+- 配置化样式定制
+- 文件存储管理
+- 安全令牌验证
 
 ## 项目结构
 
-项目采用清晰的模块化架构，主要分为以下核心目录：
+项目采用模块化架构设计，主要分为以下几个核心模块：
 
 ```mermaid
 graph TB
-subgraph "应用入口"
-Server[src/server.ts]
-CLI[src/cli.ts]
-Index[src/index.ts]
+subgraph "入口层"
+A[server.ts] --> B[Express 应用]
+C[cli.ts] --> D[命令行接口]
+E[index.ts] --> F[导出 API]
 end
-subgraph "核心处理层"
-Parser[parser/]
-Generator[generator/]
-Core[core/]
+subgraph "路由层"
+B --> G[api 路由]
+B --> H[wopi 路由]
 end
-subgraph "API 层"
-API[routes/api.ts]
-WOPI[wopi/]
+subgraph "业务逻辑层"
+G --> I[解析器]
+G --> J[生成器]
+G --> K[WOPIServer]
+I --> L[解析器实现]
+J --> M[文档构建器]
+J --> N[渲染器]
 end
-subgraph "外部依赖"
-Express[Express.js]
-Docx[docx 库]
-LibreOffice[LibreOffice]
-MarkdownIt[markdown-it]
+subgraph "配置层"
+O[config.ts] --> P[类型定义]
+Q[types.ts] --> R[核心类型]
 end
-Server --> API
-Server --> WOPI
-API --> Parser
-API --> Generator
-CLI --> Parser
-CLI --> Generator
-Parser --> Core
-Generator --> Core
-API --> Express
-Generator --> Docx
-API --> LibreOffice
-Parser --> MarkdownIt
+subgraph "工具层"
+S[token.ts] --> T[令牌管理]
+U[storage.ts] --> V[文件存储]
+W[discovery.ts] --> X[发现服务]
+end
 ```
 
 **图表来源**
 - [src/server.ts:1-40](file://src/server.ts#L1-L40)
-- [src/routes/api.ts:1-103](file://src/routes/api.ts#L1-L103)
+- [src/routes/api.ts:1-127](file://src/routes/api.ts#L1-L127)
 - [src/cli.ts:1-113](file://src/cli.ts#L1-L113)
 
 **章节来源**
@@ -86,53 +88,130 @@ Parser --> MarkdownIt
 
 ## 核心组件
 
-### API 路由系统
+### API 路由组件
 
-系统提供四个主要的 API 端点，支持完整的文档转换工作流：
+系统提供完整的 RESTful API 接口，支持以下核心功能：
 
-1. **POST /api/convert** - 直接转换 Markdown 到 DOCX
-2. **POST /api/preview** - 创建预览会话，集成 Collabora 在线编辑
-3. **GET /api/files/:fileId/download** - 下载已保存的文档
-4. **POST /api/files/:fileId/export/pdf** - 将 DOCX 导出为 PDF
+1. **文档转换接口** (`/api/convert`)
+   - 将 Markdown 内容转换为 DOCX 文件
+   - 支持自定义配置参数
+   - 返回二进制 DOCX 文件流
+
+2. **实时预览接口** (`/api/preview`)
+   - 创建临时文件会话
+   - 生成访问令牌
+   - 返回 Collabora Online 编辑 URL
+
+3. **文件下载接口** (`/api/files/:fileId/download`)
+   - 下载已生成的 DOCX 文件
+   - 基于令牌的安全访问控制
+
+4. **PDF 导出接口** (`/api/files/:fileId/export/pdf`)
+   - 将 DOCX 文件转换为 PDF
+   - 使用 LibreOffice 进行转换
+
+5. **直接 PDF 转换** (`/api/convert/pdf`)
+   - 直接从 Markdown 生成 PDF 文件
+
+**章节来源**
+- [src/routes/api.ts:15-124](file://src/routes/api.ts#L15-L124)
 
 ### 配置管理系统
 
-采用 Zod 验证的类型安全配置系统，支持字体、尺寸、间距、边距、颜色等全方位的样式定制：
+系统提供强大的配置管理功能，支持以下配置项：
 
-- 字体配置：中文字体、英文字体、代码字体
-- 尺寸配置：正文、各级标题、代码块大小
-- 间距配置：行间距、段落间距、标题间距
-- 边距配置：页面四边距
-- 图片配置：最大宽度百分比、默认对齐方式
-- 头尾配置：页眉、页脚内容、页码显示
-
-### 解析器引擎
-
-基于 markdown-it 的强大解析器，支持：
-- 标准 Markdown 语法
-- 表格支持
-- HTML 内联元素
-- 自动链接识别
-- 类型安全的令牌转换
-
-### 生成器系统
-
-使用 docx 库创建高质量的 Word 文档，支持：
-- 完整的文档结构
-- 自定义样式系统
-- 页眉页脚
-- 分页控制
-- 缓冲区直接输出
+- **字体配置**：中文字体、英文字体、代码字体
+- **尺寸配置**：正文、标题各级别的字体大小
+- **间距配置**：行间距、段落间距、标题间距
+- **边距配置**：页面四边边距
+- **图片配置**：最大宽度百分比、默认对齐方式
+- **页眉页脚配置**：内容和页码显示
+- **颜色配置**：标题、文本、链接、代码背景色等
 
 **章节来源**
-- [src/routes/api.ts:15-100](file://src/routes/api.ts#L15-L100)
-- [src/core/config.ts:68-91](file://src/core/config.ts#L68-L91)
-- [src/parser/transformer.ts:25-39](file://src/parser/transformer.ts#L25-L39)
-- [src/generator/document-builder.ts:17-106](file://src/generator/document-builder.ts#L17-L106)
+- [src/core/config.ts:1-91](file://src/core/config.ts#L1-L91)
+- [src/core/types.ts:142-204](file://src/core/types.ts#L142-L204)
+
+### 解析器组件
+
+Markdown 解析器负责将 Markdown 文本转换为内部表示（IR）：
+
+- **词法分析**：使用 markdown-it 进行标记化
+- **语法树转换**：将标记转换为块级节点和内联节点
+- **IR 构建**：生成统一的中间表示结构
+
+**章节来源**
+- [src/parser/index.ts:1-24](file://src/parser/index.ts#L1-L24)
+
+### 生成器组件
+
+文档生成器将 IR 转换为最终的 DOCX 文件：
+
+- **样式创建**：根据配置生成样式表
+- **块级渲染**：处理标题、段落、列表、表格等
+- **内联渲染**：处理文本、粗体、斜体、链接等
+- **文档构建**：使用 docx 库创建最终文档
+
+**章节来源**
+- [src/generator/document-builder.ts:18-193](file://src/generator/document-builder.ts#L18-L193)
+- [src/generator/renderers/block.ts:35-286](file://src/generator/renderers/block.ts#L35-L286)
 
 ## 架构概览
 
-系统采用分层架构设计，确保了良好的可维护性和扩展性：
+系统采用分层架构设计，确保各层职责清晰分离：
+
+```mermaid
+graph TB
+subgraph "客户端层"
+A[Web 浏览器]
+B[移动应用]
+C[命令行工具]
+end
+subgraph "API 层"
+D[Express 服务器]
+E[路由处理器]
+F[中间件]
+end
+subgraph "业务逻辑层"
+G[解析器]
+H[生成器]
+I[WOPIServer]
+end
+subgraph "数据层"
+J[内存存储]
+K[文件系统]
+L[临时目录]
+end
+subgraph "外部服务"
+M[LibreOffice]
+N[Collabora Online]
+O[CODE 服务器]
+end
+A --> D
+B --> D
+C --> D
+D --> E
+E --> G
+E --> H
+E --> I
+G --> J
+H --> K
+I --> L
+H --> M
+I --> N
+I --> O
+```
+
+**图表来源**
+- [src/server.ts:13-39](file://src/server.ts#L13-L39)
+- [src/routes/api.ts:1-127](file://src/routes/api.ts#L1-L127)
+- [src/wopi/index.ts:1-112](file://src/wopi/index.ts#L1-L112)
+
+## 详细组件分析
+
+### API 路由处理流程
+
+系统的核心 API 处理流程如下：
 
 ```mermaid
 sequenceDiagram
@@ -140,143 +219,92 @@ participant Client as 客户端
 participant API as API 路由
 participant Parser as 解析器
 participant Generator as 生成器
-participant Storage as 存储服务
-participant LibreOffice as PDF 转换
+participant Storage as 存储
+participant WOPIServer as WOPIServer
 Client->>API : POST /api/convert
+API->>API : 验证请求参数
 API->>Parser : parse(markdown, config)
-Parser->>Parser : tokenize()
-Parser->>Parser : transformTokens()
 Parser-->>API : DocumentIR
 API->>Generator : generateBuffer(DocumentIR)
-Generator->>Generator : buildDocument()
-Generator-->>API : Buffer
-API-->>Client : DOCX 文件
+Generator-->>API : DOCX Buffer
+API-->>Client : 返回 DOCX 文件
 Client->>API : POST /api/preview
-API->>Storage : save(fileId, docxBuffer)
-API->>API : generateToken()
-API-->>Client : {fileId, accessToken, collaboraUrl}
-Client->>API : POST /api/files/ : fileId/export/pdf
-API->>Storage : read(fileId)
-API->>LibreOffice : convertToPdf()
-LibreOffice-->>API : PDF Buffer
-API-->>Client : PDF 文件
+API->>Generator : generateBuffer(DocumentIR)
+Generator-->>API : DOCX Buffer
+API->>Storage : save(fileId, buffer)
+Storage-->>API : 文件ID
+API->>API : 生成访问令牌
+API-->>Client : 返回 Collabora URL
 ```
 
 **图表来源**
-- [src/routes/api.ts:15-100](file://src/routes/api.ts#L15-L100)
+- [src/routes/api.ts:15-59](file://src/routes/api.ts#L15-L59)
 - [src/parser/index.ts:11-21](file://src/parser/index.ts#L11-L21)
-- [src/generator/document-builder.ts:108-112](file://src/generator/document-builder.ts#L108-L112)
-- [src/wopi/storage.ts:19-25](file://src/wopi/storage.ts#L19-L25)
+- [src/generator/document-builder.ts:189-192](file://src/generator/document-builder.ts#L189-L192)
 
-## 详细组件分析
+### WOPIServer 协议实现
 
-### API 路由组件
-
-API 路由系统是整个应用的核心接口，负责处理所有外部请求：
-
-```mermaid
-classDiagram
-class APIService {
-+convert(req, res) Promise~void~
-+preview(req, res) Promise~void~
-+download(req, res) Promise~void~
-+exportPDF(req, res) Promise~void~
--validateToken(token, fileId) boolean
--generateCollaboraURL(fileId) string
-}
-class TokenManager {
-+generate(fileId) string
-+validate(token, fileId) boolean
--SECRET string
--TTL_MS number
-}
-class StorageManager {
-+save(fileId, buffer) Promise~void~
-+read(fileId) Promise~Buffer~
-+remove(fileId) Promise~void~
-+getMeta(fileId) Object
--locks Map
--fileMeta Map
-}
-APIService --> TokenManager : 使用
-APIService --> StorageManager : 使用
-APIService --> Parser : 依赖
-APIService --> Generator : 依赖
-```
-
-**图表来源**
-- [src/routes/api.ts:15-100](file://src/routes/api.ts#L15-L100)
-- [src/wopi/token.ts:6-26](file://src/wopi/token.ts#L6-L26)
-- [src/wopi/storage.ts:19-54](file://src/wopi/storage.ts#L19-L54)
-
-#### 转换流程分析
-
-转换过程涉及多个步骤的复杂数据流：
+系统实现了完整的 WOPIServer 协议，支持在线协作编辑：
 
 ```mermaid
 flowchart TD
-Start([开始转换]) --> ValidateInput["验证输入参数"]
-ValidateInput --> ParseMarkdown["解析 Markdown"]
-ParseMarkdown --> Tokenize["令牌化处理"]
-Tokenize --> Transform["令牌转换"]
-Transform --> BuildDoc["构建文档"]
-BuildDoc --> GenerateBuffer["生成缓冲区"]
-GenerateBuffer --> SendResponse["发送响应"]
-SendResponse --> End([结束])
-ValidateInput --> |错误| ErrorHandler["错误处理"]
-ErrorHandler --> End
-ParseMarkdown --> |异常| ErrorHandler
-Transform --> |异常| ErrorHandler
-BuildDoc --> |异常| ErrorHandler
+A[客户端请求预览] --> B[生成临时文件ID]
+B --> C[保存 DOCX 文件到存储]
+C --> D[生成访问令牌]
+D --> E[获取 Collabora URL]
+E --> F[返回给客户端]
+G[客户端访问文件] --> H[验证访问令牌]
+H --> I{令牌有效?}
+I --> |是| J[读取文件内容]
+I --> |否| K[返回 401 错误]
+J --> L[返回文件内容]
+M[文件锁定机制] --> N[检查现有锁]
+N --> O{锁冲突?}
+O --> |是| P[返回 409 冲突]
+O --> |否| Q[设置新锁]
 ```
 
 **图表来源**
-- [src/routes/api.ts:15-34](file://src/routes/api.ts#L15-L34)
-- [src/parser/index.ts:11-21](file://src/parser/index.ts#L11-L21)
-- [src/generator/document-builder.ts:108-112](file://src/generator/document-builder.ts#L108-L112)
+- [src/routes/api.ts:36-59](file://src/routes/api.ts#L36-L59)
+- [src/wopi/index.ts:7-14](file://src/wopi/index.ts#L7-L14)
+- [src/wopi/storage.ts:56-71](file://src/wopi/storage.ts#L56-L71)
 
-**章节来源**
-- [src/routes/api.ts:15-100](file://src/routes/api.ts#L15-L100)
-- [src/parser/index.ts:11-21](file://src/parser/index.ts#L11-L21)
-- [src/generator/document-builder.ts:17-106](file://src/generator/document-builder.ts#L17-L106)
+### 配置系统架构
 
-### 配置管理系统
-
-配置系统采用类型安全的设计模式，确保运行时的配置正确性：
+配置系统采用 Zod 验证和类型安全设计：
 
 ```mermaid
 classDiagram
 class ConfigSchema {
-+font FontConfig
-+size SizeConfig
-+spacing SpacingConfig
-+margin MarginConfig
-+image ImageConfig
-+headerFooter HeaderFooterConfig
-+color ColorConfig
-+pageSize PageSize
-+orientation Orientation
++font : FontConfig
++size : SizeConfig
++spacing : SpacingConfig
++margin : MarginConfig
++image : ImageConfig
++headerFooter : HeaderFooterConfig
++color : ColorConfig
++pageSize : PageSize
++orientation : Orientation
 }
 class FontConfig {
-+body string
-+heading string
-+english string
-+code string
++body : string
++heading : string
++english : string
++code : string
 }
 class SizeConfig {
-+body number
-+heading1 number
-+heading2 number
-+heading3 number
-+heading4 number
-+heading5 number
-+heading6 number
-+code number
++body : number
++heading1 : number
++heading2 : number
++heading3 : number
++heading4 : number
++heading5 : number
++heading6 : number
++code : number
 }
 class ResolvedConfig {
-+createConfig(input) ResolvedConfig
-+mergeConfig(base, override) ResolvedConfig
-+defaultConfig ResolvedConfig
++createConfig(input) : ResolvedConfig
++mergeConfig(base, override) : ResolvedConfig
 }
 ConfigSchema --> FontConfig
 ConfigSchema --> SizeConfig
@@ -285,365 +313,136 @@ ResolvedConfig --> ConfigSchema
 
 **图表来源**
 - [src/core/config.ts:54-81](file://src/core/config.ts#L54-L81)
-- [src/core/types.ts:137-198](file://src/core/types.ts#L137-L198)
+- [src/core/types.ts:142-204](file://src/core/types.ts#L142-L204)
 
-#### 配置验证流程
+**章节来源**
+- [src/wopi/token.ts:1-27](file://src/wopi/token.ts#L1-L27)
+- [src/wopi/storage.ts:19-54](file://src/wopi/storage.ts#L19-L54)
+- [src/wopi/discovery.ts:38-57](file://src/wopi/discovery.ts#L38-L57)
 
-配置验证采用 Zod 库实现类型安全的验证：
+### 文档生成流程
+
+文档生成过程包含多个处理阶段：
 
 ```mermaid
 flowchart TD
-Input[配置输入] --> Schema[Zod 模式验证]
-Schema --> Valid{验证通过?}
-Valid --> |是| Merge[合并默认值]
-Valid --> |否| Error[抛出验证错误]
-Merge --> CreateConfig[创建配置对象]
-CreateConfig --> Output[返回 ResolvedConfig]
-Error --> Output
-```
-
-**图表来源**
-- [src/core/config.ts:68-81](file://src/core/config.ts#L68-L81)
-
-**章节来源**
-- [src/core/config.ts:1-91](file://src/core/config.ts#L1-L91)
-- [src/core/types.ts:1-198](file://src/core/types.ts#L1-L198)
-
-### 解析器组件
-
-解析器系统基于 markdown-it 提供强大的 Markdown 解析能力：
-
-```mermaid
-classDiagram
-class ParserEngine {
-+parse(markdown, options) DocumentIR
--tokenize(markdown) Token[]
--transformTokens(tokens) BlockNode[]
-}
-class Tokenizer {
-+createMarkdownParser() MarkdownIt
-+tokenize(md) Token[]
--parser MarkdownIt
-}
-class Transformer {
-+transformTokens(tokens) BlockNode[]
-+transformInlineTokens(tokens) InlineNode[]
--transformBlockToken(token, tokens, index) Object
-}
-class ASTNode {
-<<interface>>
-+type string
-}
-ParserEngine --> Tokenizer : 使用
-ParserEngine --> Transformer : 使用
-Transformer --> ASTNode : 生成
+A[输入 Markdown] --> B[词法分析]
+B --> C[语法分析]
+C --> D[构建 IR]
+D --> E[创建样式表]
+E --> F[渲染块级元素]
+F --> G[渲染内联元素]
+G --> H[构建文档结构]
+H --> I[生成 DOCX]
+I --> J[输出缓冲区]
+K[配置应用] --> E
+L[模板渲染] --> F
+M[样式计算] --> G
 ```
 
 **图表来源**
 - [src/parser/index.ts:11-21](file://src/parser/index.ts#L11-L21)
-- [src/parser/tokenize.ts:12-15](file://src/parser/tokenize.ts#L12-L15)
-- [src/parser/transformer.ts:25-39](file://src/parser/transformer.ts#L25-L39)
-
-#### 令牌转换算法
-
-令牌转换过程实现了复杂的语法树构建：
-
-```mermaid
-flowchart TD
-Tokens[输入令牌数组] --> Loop[遍历令牌]
-Loop --> CheckType{检查令牌类型}
-CheckType --> |heading_open| Heading[处理标题]
-CheckType --> |paragraph_open| Paragraph[处理段落]
-CheckType --> |bullet_list_open| BulletList[处理无序列表]
-CheckType --> |ordered_list_open| OrderedList[处理有序列表]
-CheckType --> |blockquote_open| Blockquote[处理引用块]
-CheckType --> |code_block/fence| CodeBlock[处理代码块]
-CheckType --> |table_open| Table[处理表格]
-CheckType --> |html_block| HTMLBlock[处理 HTML 块]
-CheckType --> |其他| Default[默认处理]
-Heading --> Consume[消耗令牌数量]
-Paragraph --> Consume
-BulletList --> Consume
-OrderedList --> Consume
-Blockquote --> Consume
-CodeBlock --> Consume
-Table --> Consume
-HTMLBlock --> Consume
-Default --> Consume
-Consume --> Next[下一个令牌]
-Next --> Loop
-Loop --> Done[完成转换]
-```
-
-**图表来源**
-- [src/parser/transformer.ts:41-122](file://src/parser/transformer.ts#L41-L122)
-- [src/parser/transformer.ts:124-162](file://src/parser/transformer.ts#L124-L162)
+- [src/generator/document-builder.ts:18-187](file://src/generator/document-builder.ts#L18-L187)
+- [src/generator/styles.ts:5-109](file://src/generator/styles.ts#L5-L109)
 
 **章节来源**
-- [src/parser/index.ts:1-24](file://src/parser/index.ts#L1-L24)
-- [src/parser/tokenize.ts:1-16](file://src/parser/tokenize.ts#L1-L16)
-- [src/parser/transformer.ts:1-360](file://src/parser/transformer.ts#L1-L360)
-
-### 生成器组件
-
-生成器系统使用 docx 库创建高质量的 Word 文档：
-
-```mermaid
-classDiagram
-class DocumentBuilder {
-+buildDocument(ir) Promise~Document~
-+generateBuffer(ir) Promise~Buffer~
--createStyles(config) Object
--renderBlock(node, config) Promise~FileChild[]~
-}
-class StyleManager {
-+createStyles(config) Object
--createParagraphStyles() Object
--createCharacterStyles() Object
--createHeadingStyles() Object
-}
-class Renderer {
-+renderBlock(node, config) Promise~FileChild[]~
-+renderInline(node, config) Promise~TextRun[]~
-}
-DocumentBuilder --> StyleManager : 使用
-DocumentBuilder --> Renderer : 使用
-DocumentBuilder --> Document : 生成
-```
-
-**图表来源**
-- [src/generator/document-builder.ts:17-106](file://src/generator/document-builder.ts#L17-L106)
-- [src/generator/styles.ts](file://src/generator/styles.ts)
-
-#### 文档构建流程
-
-文档构建过程涉及多层抽象和复杂的样式应用：
-
-```mermaid
-sequenceDiagram
-participant IR as DocumentIR
-participant Builder as DocumentBuilder
-participant Styles as StyleManager
-participant Renderer as BlockRenderer
-participant Docx as docx.Document
-Builder->>IR : 获取配置和内容
-Builder->>Styles : createStyles(config)
-Styles-->>Builder : 返回样式定义
-Builder->>IR : 遍历子节点
-loop 每个块级节点
-Builder->>Renderer : renderBlock(node, config)
-Renderer-->>Builder : 返回渲染结果
-end
-Builder->>Docx : 创建文档对象
-Docx-->>Builder : 返回文档实例
-Builder-->>IR : 返回构建完成的文档
-```
-
-**图表来源**
-- [src/generator/document-builder.ts:17-106](file://src/generator/document-builder.ts#L17-L106)
-- [src/generator/renderers/block.ts](file://src/generator/renderers/block.ts)
-
-**章节来源**
-- [src/generator/index.ts:1-21](file://src/generator/index.ts#L1-L21)
-- [src/generator/document-builder.ts:1-112](file://src/generator/document-builder.ts#L1-L112)
-
-### WOPI 服务器集成
-
-系统集成了 WOPIServer 协议，支持 Collabora 在线编辑：
-
-```mermaid
-classDiagram
-class WOPIRouter {
-+validateToken(req, res, next) void
-+getFileMeta(req, res) Promise~void~
-+getFileContents(req, res) Promise~void~
-+updateFile(req, res) Promise~void~
-+lockManagement(req, res) Promise~void~
-}
-class TokenValidator {
-+generate(fileId) string
-+validate(token, fileId) boolean
--calculateHMAC(data) string
-}
-class FileStorage {
-+save(fileId, buffer) Promise~void~
-+read(fileId) Promise~Buffer~
-+getMeta(fileId) Object
-+setLock(fileId, lockId) void
-+getLock(fileId) string
-+deleteLock(fileId) void
-}
-WOPIRouter --> TokenValidator : 使用
-WOPIRouter --> FileStorage : 使用
-```
-
-**图表来源**
-- [src/wopi/index.ts:7-112](file://src/wopi/index.ts#L7-L112)
-- [src/wopi/token.ts:6-26](file://src/wopi/token.ts#L6-L26)
-- [src/wopi/storage.ts:19-71](file://src/wopi/storage.ts#L19-L71)
-
-#### WOPI 锁机制
-
-WOPIServer 协议实现了完整的文件锁定和并发控制：
-
-```mermaid
-stateDiagram-v2
-[*] --> Unlocked
-Unlocked --> Locked : LOCK 请求
-Locked --> Refreshing : REFRESH_LOCK 请求
-Refreshing --> Locked : 更新锁
-Locked --> Unlocked : UNLOCK 请求
-Locked --> Expired : TTL 过期
-Expired --> Unlocked : 清理过期锁
-state Locked {
-[*] --> Active
-Active --> Updating : 文件更新
-Updating --> Active
-}
-```
-
-**图表来源**
-- [src/wopi/index.ts:54-87](file://src/wopi/index.ts#L54-L87)
-- [src/wopi/storage.ts:56-71](file://src/wopi/storage.ts#L56-L71)
-
-**章节来源**
-- [src/wopi/index.ts:1-112](file://src/wopi/index.ts#L1-L112)
-- [src/wopi/token.ts:1-27](file://src/wopi/token.ts#L1-L27)
-- [src/wopi/storage.ts:1-81](file://src/wopi/storage.ts#L1-L81)
+- [src/generator/renderers/block.ts:35-286](file://src/generator/renderers/block.ts#L35-L286)
+- [src/generator/styles.ts:1-122](file://src/generator/styles.ts#L1-L122)
 
 ## 依赖关系分析
 
-系统依赖关系清晰，采用模块化设计降低耦合度：
+系统依赖关系图展示了各模块间的耦合程度：
 
 ```mermaid
-graph TB
+graph LR
 subgraph "核心依赖"
-Express[express ^5.2.1]
-Docx[docx ^9.6.1]
-LibreConvert[libreoffice-convert ^1.8.1]
-MarkdownIt[markdown-it ^14.1.1]
-Sharp[sharp ^0.34.5]
+A[express] --> B[路由处理]
+C[docx] --> D[DOCX 生成]
+E[zod] --> F[配置验证]
 end
-subgraph "验证库"
-Zod[zod ^4.3.6]
+subgraph "可选依赖"
+G[libreoffice-convert] --> H[PDF 转换]
+I[cors] --> J[跨域支持]
+K[sharp] --> L[图像处理]
 end
-subgraph "开发工具"
-TypeScript[typescript ^6.0.3]
-Vitest[vitest ^4.1.5]
-Tsup[tsup ^8.5.1]
+subgraph "开发依赖"
+M[typescript] --> N[类型检查]
+O[tsup] --> P[构建工具]
+Q[vitest] --> R[测试框架]
 end
-subgraph "运行时依赖"
-CORS[cors ^2.8.6]
-Dotenv[dotenv ^17.4.2]
-FastXML[fast-xml-parser ^5.7.2]
-LibreOffice[libreoffice ^0.4.5]
+subgraph "内部模块"
+S[parser] --> T[解析器]
+U[generator] --> V[生成器]
+W[wopi] --> X[WOPIServer]
+Y[core] --> Z[核心配置]
 end
-API --> Express
-Generator --> Docx
-API --> LibreConvert
-Parser --> MarkdownIt
-Parser --> Sharp
-Core --> Zod
-Tests --> Vitest
-Build --> Tsup
-Server --> CORS
-Server --> Dotenv
-API --> FastXML
-API --> LibreOffice
 ```
 
 **图表来源**
 - [package.json:29-49](file://package.json#L29-L49)
 
 **章节来源**
-- [package.json:1-51](file://package.json#L1-L51)
+- [package.json:11-20](file://package.json#L11-L20)
 
 ## 性能考虑
 
-### 内存管理优化
-
-系统在处理大文档时采用了多项内存优化策略：
-
-1. **流式处理**：API 路由支持 10MB 限制的请求体大小
-2. **临时文件管理**：WOPIServer 使用临时目录存储中间文件
-3. **垃圾回收**：定期清理过期的临时文件和锁信息
+### 内存管理
+- 使用流式处理避免大文件内存占用
+- 实现临时文件清理机制防止磁盘空间泄漏
+- 配置合理的超时时间和重试策略
 
 ### 并发处理
-
-- **异步操作**：所有 I/O 操作都采用 Promise 和 async/await
-- **连接池**：Express 应用程序支持多连接并发
-- **超时控制**：LibreOffice 转换设置了合理的超时时间
+- Express 默认支持多请求并发处理
+- 文件操作使用异步 API 避免阻塞
+- LibreOffice 转换使用进程池管理
 
 ### 缓存策略
-
-- **配置缓存**：解析后的配置对象可以重复使用
-- **样式缓存**：生成的样式定义可以缓存避免重复计算
-- **文件缓存**：WOPIServer 实现了文件元数据缓存
+- 发现服务结果缓存减少网络请求
+- 令牌验证结果本地缓存
+- 配置对象复用避免重复创建
 
 ## 故障排除指南
 
-### 常见错误类型
+### 常见错误及解决方案
 
-系统定义了多种错误类型以提供清晰的错误信息：
+1. **LibreOffice 未找到**
+   - 确保系统已安装 LibreOffice
+   - 检查 soffice 可执行文件路径
+   - 配置正确的环境变量
 
-```mermaid
-classDiagram
-class ErrorTypes {
-<<enumeration>>
-+MarkdownParseError
-+DocxGenerationError
-+ImageProcessingError
-+ConfigValidationError
-}
-class APIErrors {
-+ValidationError
-+AuthorizationError
-+FileNotFoundError
-+ConversionError
-}
-ErrorTypes --> APIErrors : 映射
-```
+2. **WOPIServer 发现失败**
+   - 验证 CODE 服务器地址配置
+   - 检查网络连接和防火墙设置
+   - 查看发现服务日志
 
-**图表来源**
-- [src/core/errors.ts](file://src/core/errors.ts)
+3. **文件存储权限问题**
+   - 确认临时目录存在且可写
+   - 检查磁盘空间是否充足
+   - 验证文件系统权限
 
-### 错误处理流程
-
-```mermaid
-flowchart TD
-Request[API 请求] --> Validate[参数验证]
-Validate --> Valid{验证通过?}
-Valid --> |否| ValidationError[返回 400 错误]
-Valid --> |是| Process[处理请求]
-Process --> Success{处理成功?}
-Success --> |否| InternalError[返回 500 错误]
-Success --> |是| Response[返回成功响应]
-ValidationError --> Log[记录日志]
-InternalError --> Log
-Response --> Log
-Log --> End[结束]
-```
-
-### 调试建议
-
-1. **启用详细日志**：查看控制台输出的错误信息
-2. **检查环境变量**：确保 WOPI_SECRET 和其他配置正确设置
-3. **验证输入格式**：确认 Markdown 内容格式正确
-4. **监控资源使用**：注意内存和磁盘空间使用情况
+4. **令牌验证失败**
+   - 检查 WOPI_SECRET 配置
+   - 验证令牌过期时间设置
+   - 确认文件ID格式正确
 
 **章节来源**
-- [src/routes/api.ts:27-33](file://src/routes/api.ts#L27-L33)
-- [src/routes/api.ts:52-58](file://src/routes/api.ts#L52-L58)
 - [src/routes/api.ts:90-99](file://src/routes/api.ts#L90-L99)
+- [src/wopi/token.ts:14-26](file://src/wopi/token.ts#L14-L26)
+- [src/wopi/storage.ts:12-17](file://src/wopi/storage.ts#L12-L17)
 
 ## 结论
 
-该 Markdown 到 Word 转换器提供了完整的 API 功能集，具有以下优势：
+该系统提供了完整的 Markdown 到 Word 文档转换解决方案，具有以下优势：
 
-1. **模块化设计**：清晰的组件分离便于维护和扩展
-2. **类型安全**：使用 TypeScript 和 Zod 确保运行时安全
-3. **功能完整**：支持转换、预览、导出等多种功能
-4. **协议兼容**：集成 WOPIServer 支持在线协作编辑
-5. **性能优化**：采用异步处理和内存优化策略
+1. **功能完整性**：涵盖转换、预览、导出等核心功能
+2. **架构清晰**：模块化设计便于维护和扩展
+3. **配置灵活**：丰富的样式和布局配置选项
+4. **安全性**：完善的访问控制和令牌验证机制
+5. **可扩展性**：良好的插件架构支持功能扩展
 
-系统适合在企业环境中部署，为用户提供从 Markdown 内容到专业 Word 文档的完整解决方案。通过合理的配置管理和错误处理机制，确保了系统的稳定性和可靠性。
+建议的后续改进方向：
+- 添加更多的输出格式支持
+- 实现更精细的权限控制
+- 增加批量处理功能
+- 优化大文件处理性能
+- 扩展模板系统功能

@@ -12,7 +12,17 @@
 - [index.html](file://public/index.html)
 - [Dockerfile](file://Dockerfile)
 - [docker-compose.yml](file://docker-compose.yml)
+- [config.ts](file://src/core/config.ts)
+- [document-builder.ts](file://src/generator/document-builder.ts)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 新增完整的 WOPI 协议实现，包括发现服务、令牌管理和存储系统
+- 增强 Collabora Online 集成，支持实时协作编辑功能
+- 添加 WOPISrc 协议支持，实现标准的在线文档编辑流程
+- 优化前端集成，提供流畅的在线编辑体验
+- 完善环境配置和容器化部署支持
 
 ## 目录
 1. [简介](#简介)
@@ -29,8 +39,12 @@
 
 这是一个基于 TypeScript 的 Markdown 到 Word 文档转换器，集成了 Collabora Online 在线编辑功能。该系统允许用户通过 Web 界面实时编辑 Markdown 内容，并在 Collabora Online 中进行协作编辑。
 
+**更新** 新增了完整的 WOPI（Web Application Open XML Interface）协议实现，支持标准的在线文档编辑流程，包括文件发现、令牌验证和协作编辑功能。
+
 主要特性包括：
 - 实时 Markdown 编辑和预览
+- **完整的 WOPI 协议实现**
+- **WOPISrc 协议支持**
 - Collabora Online 集成实现在线协作编辑
 - PDF 导出功能
 - 可定制的文档样式配置
@@ -73,7 +87,7 @@ C --> H
 
 **图表来源**
 - [server.ts:1-40](file://src/server.ts#L1-L40)
-- [api.ts:1-103](file://src/routes/api.ts#L1-L103)
+- [api.ts:1-127](file://src/routes/api.ts#L1-L127)
 - [discovery.ts:1-58](file://src/wopi/discovery.ts#L1-L58)
 
 **章节来源**
@@ -92,21 +106,23 @@ C --> H
 - `/api/files/:fileId/export/pdf` - 导出 PDF 文件
 - `/wopi/files/:fileId` - WOPI 协议端点
 
+**更新** 新增了完整的 WOPI 协议端点，支持文件元数据管理、锁定机制和内容读写操作。
+
 ### WOPI 协议实现
 
 系统实现了完整的 WOPI（Web Application Open XML Interface）协议，支持：
 
-- 文件元数据管理
-- 锁定机制（Lock/Unlock/Refresh Lock）
-- 文件内容读写操作
-- 访问令牌验证
+- **文件元数据管理** - 提供文件基本信息和权限控制
+- **锁定机制** - 支持 LOCK/UNLOCK/REFRESH_LOCK 操作
+- **文件内容读写** - 通过 WOPISrc 协议进行内容同步
+- **访问令牌验证** - 基于 HMAC-SHA256 的安全令牌机制
 
 ### Collabora Online 集成
 
-通过动态发现机制自动连接到 Collabora Online 服务，支持多种文档格式编辑。
+通过动态发现机制自动连接到 Collabora Online 服务，支持多种文档格式编辑。**更新** 新增了 WOPISrc 协议支持，实现标准的在线文档编辑流程。
 
 **章节来源**
-- [api.ts:15-103](file://src/routes/api.ts#L15-L103)
+- [api.ts:15-127](file://src/routes/api.ts#L15-L127)
 - [index.ts:1-112](file://src/wopi/index.ts#L1-L112)
 
 ## 架构概览
@@ -117,42 +133,46 @@ C --> H
 graph TD
 subgraph "客户端层"
 A[浏览器客户端<br/>public/index.html]
+B[Collabora Online 客户端]
 end
 subgraph "应用服务层"
-B[Express 服务器<br/>src/server.ts]
-C[API 路由<br/>src/routes/api.ts]
-D[WOPI 路由<br/>src/wopi/index.ts]
+C[Express 服务器<br/>src/server.ts]
+D[API 路由<br/>src/routes/api.ts]
+E[WOPI 路由<br/>src/wopi/index.ts]
 end
 subgraph "业务逻辑层"
-E[Markdown 解析器<br/>src/parser/]
-F[文档生成器<br/>src/generator/]
-G[配置管理<br/>src/core/config.ts]
+F[Markdown 解析器<br/>src/parser/]
+G[文档生成器<br/>src/generator/]
+H[配置管理<br/>src/core/config.ts]
 end
 subgraph "协作编辑层"
-H[发现服务<br/>src/wopi/discovery.ts]
-I[存储管理<br/>src/wopi/storage.ts]
-J[令牌管理<br/>src/wopi/token.ts]
+I[发现服务<br/>src/wopi/discovery.ts]
+J[存储管理<br/>src/wopi/storage.ts]
+K[令牌管理<br/>src/wopi/token.ts]
 end
 subgraph "外部服务"
-K[Collabora Online]
-L[LibreOffice]
+L[Collabora Online]
+M[LibreOffice]
+N[WOPISrc 协议]
 end
-A --> B
-B --> C
-B --> D
+A --> C
+B --> L
+C --> D
 C --> E
-C --> F
-C --> G
+D --> F
+D --> G
 D --> H
-D --> I
-D --> J
-C --> K
-F --> L
+E --> I
+E --> J
+E --> K
+D --> L
+G --> M
+D --> N
 ```
 
 **图表来源**
 - [server.ts:13-39](file://src/server.ts#L13-L39)
-- [api.ts:1-103](file://src/routes/api.ts#L1-L103)
+- [api.ts:1-127](file://src/routes/api.ts#L1-L127)
 - [discovery.ts:38-57](file://src/wopi/discovery.ts#L38-L57)
 
 ## 详细组件分析
@@ -177,6 +197,8 @@ class CollaboraOnline {
 }
 DiscoveryService --> CollaboraOnline : "查询"
 ```
+
+**更新** 发现服务现在支持重试机制和缓存策略，确保在 Collabora Online 服务启动延迟时仍能正常工作。
 
 **图表来源**
 - [discovery.ts:38-57](file://src/wopi/discovery.ts#L38-L57)
@@ -215,8 +237,10 @@ StorageManager --> FileMeta : "管理"
 StorageManager --> LockInfo : "管理"
 ```
 
+**更新** 存储系统现在包含自动清理机制，定期删除过期文件，防止磁盘空间占用。
+
 **图表来源**
-- [storage.ts:9-80](file://src/wopi/storage.ts#L9-L80)
+- [storage.ts:9-81](file://src/wopi/storage.ts#L9-L81)
 
 ### 令牌验证系统
 
@@ -242,9 +266,11 @@ Token-->>API : true/false
 API-->>Collabora : 文件元数据
 ```
 
+**更新** 令牌系统现在支持自定义过期时间和安全密钥配置，提供更灵活的安全控制。
+
 **图表来源**
 - [api.ts:36-59](file://src/routes/api.ts#L36-L59)
-- [token.ts:6-26](file://src/wopi/token.ts#L6-L26)
+- [token.ts:6-27](file://src/wopi/token.ts#L6-L27)
 
 ### 前端集成组件
 
@@ -266,6 +292,8 @@ I --> B
 J --> B
 ```
 
+**更新** 前端现在集成了 Collabora Online 的完整编辑功能，提供与桌面版 Word 相似的编辑体验。
+
 **图表来源**
 - [index.html:450-633](file://public/index.html#L450-L633)
 
@@ -273,7 +301,7 @@ J --> B
 - [discovery.ts:1-58](file://src/wopi/discovery.ts#L1-L58)
 - [storage.ts:1-81](file://src/wopi/storage.ts#L1-L81)
 - [token.ts:1-27](file://src/wopi/token.ts#L1-L27)
-- [index.html:1-633](file://public/index.html#L1-L633)
+- [index.html:1-200](file://public/index.html#L1-L200)
 
 ## 依赖关系分析
 
@@ -288,23 +316,27 @@ E[docx] --> F[DOCX 生成]
 G[libreoffice-convert] --> H[PDF 转换]
 I[markdown-it] --> J[Markdown 解析]
 K[zod] --> L[配置验证]
+M[fast-xml-parser] --> N[XML 解析]
+O[libreoffice] --> P[LibreOffice 支持]
 end
 subgraph "开发依赖"
-M[tsup] --> N[构建工具]
-O[vitest] --> P[测试框架]
-Q[typescript] --> R[类型定义]
+Q[tsup] --> R[构建工具]
+S[vitest] --> T[测试框架]
+U[typescript] --> V[类型定义]
 end
 subgraph "应用模块"
-S[server.ts] --> T[api.ts]
-S --> U[wopi/index.ts]
-V[api.ts] --> W[parser/]
-V --> X[generator/]
-V --> Y[core/]
-U --> Z[discovery.ts]
-U --> AA[storage.ts]
-U --> AB[token.ts]
+W[server.ts] --> X[api.ts]
+W --> Y[wopi/index.ts]
+Z[api.ts] --> AA[parser/]
+Z --> BB[generator/]
+Z --> CC[core/]
+Y --> DD[discovery.ts]
+Y --> EE[storage.ts]
+Y --> FF[token.ts]
 end
 ```
+
+**更新** 新增了 fast-xml-parser 依赖用于解析 Collabora Online 的 discovery.xml 文件。
 
 **图表来源**
 - [package.json:29-49](file://package.json#L29-L49)
@@ -316,9 +348,11 @@ end
 ## 性能考虑
 
 ### 缓存策略
-- 发现服务结果缓存，避免频繁网络请求
-- 文件 TTL 自动清理机制，防止磁盘空间占用
-- 锁定状态内存缓存，提高并发性能
+- **发现服务结果缓存** - 避免频繁网络请求，提高启动速度
+- **文件 TTL 自动清理机制** - 防止磁盘空间占用，定期清理过期文件
+- **锁定状态内存缓存** - 提高并发性能，减少数据库访问
+
+**更新** 新增了自动清理机制，定时清理超过 TTL 的临时文件。
 
 ### 并发处理
 - 异步文件操作避免阻塞主线程
@@ -338,32 +372,43 @@ end
 - 检查 `CODE_URL` 环境变量配置
 - 确认 Docker Compose 服务正常运行
 - 验证网络连通性和防火墙设置
+- **检查发现服务初始化是否成功**
 
 **文件上传失败**
 - 检查 `TEMP_DIR` 权限设置
 - 确认磁盘空间充足
 - 验证文件大小限制（默认 10MB）
+- **确认临时文件目录存在且可写**
 
 **令牌验证错误**
 - 检查 `WOPI_SECRET` 环境变量
 - 验证令牌过期时间设置
 - 确认客户端和服务端时间同步
+- **检查令牌生成和验证逻辑**
 
 **PDF 导出失败**
 - 安装 LibreOffice 二进制文件
 - 检查 `soffice` 可执行文件路径
 - 验证 DOCX 文件格式正确性
 
+**WOPISrc 协议错误**
+- 确认 Collabora Online 版本兼容性
+- 检查 WOPISrc 参数编码
+- 验证访问令牌格式正确性
+
 **章节来源**
 - [server.ts:27-39](file://src/server.ts#L27-L39)
-- [api.ts:90-99](file://src/routes/api.ts#L90-L99)
+- [api.ts:90-127](file://src/routes/api.ts#L90-L127)
 
 ## 结论
 
 该系统成功实现了 Markdown 到 Word 文档的转换，并集成了 Collabora Online 提供的在线协作编辑功能。通过模块化设计和清晰的架构分离，系统具备良好的可维护性和扩展性。
 
+**更新** 新增的 WOPI 协议实现使系统完全符合标准的在线文档编辑规范，提供了企业级的协作编辑能力。
+
 主要优势包括：
-- 完整的 WOPI 协议实现
+- **完整的 WOPI 协议实现**
+- **标准的 WOPISrc 协议支持**
 - 灵活的配置系统
 - Docker 容器化部署支持
 - 用户友好的 Web 界面
@@ -374,3 +419,5 @@ end
 - 添加用户认证系统
 - 实现更丰富的编辑功能
 - 增加版本控制功能
+- **支持多用户协作编辑**
+- **增强实时同步机制**
