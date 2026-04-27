@@ -24,6 +24,10 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.get('/CONFIG_SPEC.md', (_req, res) => {
+  res.sendFile(path.join(__dirname, '../CONFIG_SPEC.md'));
+});
+
 initDiscovery()
   .then(() => {
     app.listen(PORT, () => {

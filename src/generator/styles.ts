@@ -22,8 +22,11 @@ export function createStyles(config: ResolvedConfig): StyleForParagraph[] {
       quickFormat: true,
       run: {
         font: {
-          name: config.font.heading,
+          ascii: config.font.english,
+          hAnsi: config.font.english,
           eastAsia: config.font.heading,
+          cs: config.font.english,
+          name: config.font.heading, // Fallback
         },
         size: ptToHalfPt(headingSizes[i]),
         bold: level <= 2,
@@ -46,8 +49,11 @@ export function createStyles(config: ResolvedConfig): StyleForParagraph[] {
     name: 'Normal',
     run: {
       font: {
-        name: config.font.body,
+        ascii: config.font.english,
+        hAnsi: config.font.english,
         eastAsia: config.font.body,
+        cs: config.font.english,
+        name: config.font.body, // Fallback
       },
       size: ptToHalfPt(config.size.body),
       color: config.color.text,
@@ -68,8 +74,11 @@ export function createStyles(config: ResolvedConfig): StyleForParagraph[] {
     basedOn: 'Normal',
     run: {
       font: {
-        name: config.font.code,
+        ascii: config.font.code,
+        hAnsi: config.font.code,
         eastAsia: config.font.code,
+        cs: config.font.code,
+        name: config.font.code, // Fallback
       },
       size: ptToHalfPt(config.size.code),
     },

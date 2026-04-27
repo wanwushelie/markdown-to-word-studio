@@ -61,10 +61,15 @@
 ## 🔴 Next Up — High Impact / 下一步 — 高影响
 
 ### Style Templates / 样式模板
-- ⬜ Add preset templates (Academic Paper, Report, Resume, etc.)
-- 添加预设模板（学术论文、报告、简历等）
-- ⬜ Support custom template import/export as JSON
-- 支持自定义模板导入/导出为 JSON
+- ✅ Add preset templates (Academic Paper, Report, Resume, etc.) via Smart Import
+- ✅ Support custom template import/export as JSON/Text (Smart Config Import)
+- File: `public/index.html`, `CONFIG_SPEC.md`
+
+### Enhanced Config Panel / 增强配置面板 (Part 2)
+- ✅ Add English & Code font selection with datalist
+- ✅ Add Text color and independent margin (top/bottom/left/right) inputs
+- ✅ Add paragraph and heading spacing controls
+- File: `public/index.html`, `src/generator/styles.ts`
 
 ---
 
