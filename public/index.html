@@ -56,6 +56,27 @@
     .color-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
     .color-row label { font-size: 11px; color: #888; flex: 1; }
     .color-row input[type=color] { width: 28px; height: 22px; padding: 0; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; }
+    /* Markdown preview styles */
+    .md-preview { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.7; color: #24292e; max-width: 800px; margin: 0 auto; padding: 24px; background: white; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .md-preview h1,.md-preview h2,.md-preview h3,.md-preview h4,.md-preview h5,.md-preview h6 { margin: 1.2em 0 0.6em; font-weight: 600; line-height: 1.25; }
+    .md-preview h1 { font-size: 2em; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+    .md-preview h2 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+    .md-preview h3 { font-size: 1.25em; }
+    .md-preview p { margin: 0.8em 0; }
+    .md-preview code { background: #f6f8fa; padding: 0.2em 0.4em; border-radius: 3px; font-size: 85%; font-family: Consolas, Monaco, monospace; }
+    .md-preview pre { background: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; }
+    .md-preview pre code { background: none; padding: 0; font-size: 85%; }
+    .md-preview blockquote { border-left: 4px solid #dfe2e5; padding: 0 1em; color: #6a737d; margin: 0.8em 0; }
+    .md-preview table { border-collapse: collapse; width: 100%; margin: 0.8em 0; }
+    .md-preview th, .md-preview td { border: 1px solid #dfe2e5; padding: 8px 12px; text-align: left; }
+    .md-preview th { background: #f6f8fa; font-weight: 600; }
+    .md-preview img { max-width: 100%; border-radius: 4px; }
+    .md-preview a { color: #0366d6; text-decoration: none; }
+    .md-preview a:hover { text-decoration: underline; }
+    .md-preview hr { border: none; border-top: 2px solid #eee; margin: 1.5em 0; }
+    .md-preview ul, .md-preview ol { padding-left: 2em; margin: 0.5em 0; }
+    .md-preview li { margin: 0.3em 0; }
+    .md-preview s { color: #999; }
 
     /* Preview */
     #preview-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
@@ -119,6 +140,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/xml/xml.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/markdown/markdown.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/13.0.2/markdown-it.min.js"></script>
 </head>
 <body>
   <div class="header">
@@ -214,11 +236,12 @@ Visit [OpenAI](https://openai.com) for more info.
       <div class="col-header">
         Preview
         <select id="previewMode" onchange="changePreviewMode()" style="margin-left:8px;font-size:11px;padding:2px 4px;border-radius:3px;border:1px solid #ddd;background:#fff;outline:none;cursor:pointer;">
-          <option value="local">Local (Fast)</option>
+          <option value="markdown">Markdown (Instant)</option>
+          <option value="local">Docx Preview (Fast)</option>
           <option value="pdf">PDF Preview (Hi-Fi)</option>
           <option value="collabora">Collabora (Edit)</option>
         </select>
-        <span class="tag" style="background:#e8f4fd;color:#3498db;" id="previewModeTag">docx-preview</span>
+        <span class="tag" style="background:#fff3e0;color:#e65100;" id="previewModeTag">Markdown</span>
       </div>
       <div class="preview-toolbar">
         <button id="refreshBtn" onclick="refreshEditor()">
@@ -421,8 +444,9 @@ Visit [OpenAI](https://openai.com) for more info.
 
     /* === Auto-preview on editor change === */
     const debouncedPreview = debounce(() => {
-      if (autoPreviewEl.checked && previewModeSelect.value === 'local') refreshEditor();
-    }, 1500);
+      const m = previewModeSelect.value;
+      if (autoPreviewEl.checked && (m === 'local' || m === 'markdown')) refreshEditor();
+    }, 800);
     cm.on('change', () => {
       charCountEl.textContent = `${cm.getValue().length} chars`;
       debouncedPreview();
@@ -431,7 +455,8 @@ Visit [OpenAI](https://openai.com) for more info.
 
     /* === Auto-preview on config change === */
     const debouncedConfigPreview = debounce(() => {
-      if (autoPreviewEl.checked && previewModeSelect.value === 'local') refreshEditor();
+      const m = previewModeSelect.value;
+      if (autoPreviewEl.checked && (m === 'local' || m === 'markdown')) refreshEditor();
     }, 800);
     document.getElementById('configCol').addEventListener('change', debouncedConfigPreview);
     document.getElementById('configCol').addEventListener('input', debounce(debouncedConfigPreview, 500));
@@ -573,10 +598,19 @@ Visit [OpenAI](https://openai.com) for more info.
       };
     }
 
+    /* === Markdown-it instance === */
+    const mdit = window.markdownit({ html: true, linkify: true, typographer: true });
+
     /* === Preview Mode Switch === */
     function changePreviewMode() {
       const mode = previewModeSelect.value;
-      if (mode === 'local') {
+      if (mode === 'markdown') {
+        previewModeTag.textContent = 'Markdown';
+        previewModeTag.style.background = '#fff3e0';
+        previewModeTag.style.color = '#e65100';
+        previewEl.style.display = 'none';
+        localPreviewEl.style.display = 'block';
+      } else if (mode === 'local') {
         previewModeTag.textContent = 'docx-preview';
         previewModeTag.style.background = '#e8f4fd';
         previewModeTag.style.color = '#3498db';
@@ -610,6 +644,14 @@ Visit [OpenAI](https://openai.com) for more info.
       const mode = previewModeSelect.value;
       
       try {
+        if (mode === 'markdown') {
+          localPreviewEl.innerHTML = `<div class="md-preview">${mdit.render(markdown)}</div>`;
+          downloadBtn.disabled = true;
+          exportPdfBtn.disabled = true;
+          previewStatusEl.textContent = 'Ready';
+          refreshBtn.disabled = false;
+          return;
+        }
         if (mode === 'local') {
           const response = await fetch('/api/convert', {
             method: 'POST',
