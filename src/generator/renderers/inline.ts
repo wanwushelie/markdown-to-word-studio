@@ -1,4 +1,4 @@
-import { TextRun, type IRunOptions } from 'docx';
+import { TextRun, ExternalHyperlink, type IRunOptions } from 'docx';
 import type { InlineNode, ResolvedConfig } from '../../core/types.js';
 import { ptToHalfPt } from '../../utils/units.js';
 
@@ -9,8 +9,10 @@ interface TextStyle extends IRunOptions {
   };
 }
 
-export function renderInline(nodes: InlineNode[], config: ResolvedConfig, inherited: TextStyle = {}): TextRun[] {
-  const runs: TextRun[] = [];
+type InlineChild = TextRun | ExternalHyperlink;
+
+export function renderInline(nodes: InlineNode[], config: ResolvedConfig, inherited: TextStyle = {}): InlineChild[] {
+  const runs: InlineChild[] = [];
 
   for (const node of nodes) {
     switch (node.type) {
@@ -61,6 +63,16 @@ export function renderInline(nodes: InlineNode[], config: ResolvedConfig, inheri
         break;
       }
 
+      case 'strikethrough': {
+        runs.push(
+          ...renderInline(node.children, config, {
+            ...inherited,
+            strike: true,
+          })
+        );
+        break;
+      }
+
       case 'inlineCode': {
         runs.push(
           new TextRun({
@@ -80,13 +92,19 @@ export function renderInline(nodes: InlineNode[], config: ResolvedConfig, inheri
       }
 
       case 'link': {
+        const linkChildren = renderInline(node.children, config, {
+          ...inherited,
+          color: config.color.link,
+          underline: {
+            type: 'single',
+          },
+        });
+        // Filter to only TextRun for ExternalHyperlink children
+        const textChildren = linkChildren.filter((c): c is TextRun => c instanceof TextRun);
         runs.push(
-          ...renderInline(node.children, config, {
-            ...inherited,
-            color: config.color.link,
-            underline: {
-              type: 'single',
-            },
+          new ExternalHyperlink({
+            children: textChildren,
+            link: node.href,
           })
         );
         break;

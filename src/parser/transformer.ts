@@ -315,9 +315,8 @@ export function transformInlineTokens(tokens: Token[]): InlineNode[] {
       }
 
       case 's_open': {
-        // Strikethrough - treat as plain text for now
         const { children, consumed } = collectUntil(tokens, i, 's_close');
-        nodes.push(...transformInlineTokens(children));
+        nodes.push({ type: 'strikethrough', children: transformInlineTokens(children) });
         i += consumed;
         break;
       }

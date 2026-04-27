@@ -99,4 +99,28 @@ router.post('/files/:fileId/export/pdf', async (req, res) => {
   }
 });
 
+router.post('/convert/pdf', async (req, res) => {
+  try {
+    const { markdown, config: configInput, meta } = req.body;
+    if (!markdown) {
+      return res.status(400).json({ error: 'Markdown content is required' });
+    }
+    const config = createConfig(configInput as ConfigInput | undefined);
+    const ir = parse(markdown, { meta: meta ?? {}, config });
+    const docxBuffer = await generateBuffer(ir);
+    const pdfBuffer = await convertToPdf(docxBuffer, 'pdf', undefined);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${meta?.title || 'document'}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error: any) {
+    if (error.message && error.message.includes('Could not find soffice binary')) {
+      return res.status(503).json({
+        error: 'LibreOffice not found',
+        message: 'LibreOffice is required for PDF export.',
+      });
+    }
+    res.status(500).json({ error: 'Failed to export PDF', message: error.message });
+  }
+});
+
 export default router;

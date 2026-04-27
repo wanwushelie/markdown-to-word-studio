@@ -25,6 +25,13 @@ import { renderInline } from './inline.js';
 import { renderImage } from './image.js';
 import { ptToTwip, ptToHalfPt } from '../../utils/units.js';
 
+let listInstanceCounter = 0;
+
+/** Reset list counter (useful for testing) */
+export function resetListCounter(): void {
+  listInstanceCounter = 0;
+}
+
 export async function renderBlock(
   node: BlockNode,
   config: ResolvedConfig
@@ -89,10 +96,13 @@ function renderParagraph(node: ParagraphNode, config: ResolvedConfig): Paragraph
   });
 }
 
-function renderList(node: ListNode, config: ResolvedConfig): Paragraph[] {
+function renderList(node: ListNode, config: ResolvedConfig, level: number = 0, instance?: number): Paragraph[] {
   const paragraphs: Paragraph[] = [];
+  const reference = node.ordered ? 'numbered-list' : 'bullet-list';
+  const currentInstance = instance ?? ++listInstanceCounter;
 
   for (const item of node.children) {
+    let firstParagraph = true;
     for (const child of item.children) {
       if (child.type === 'paragraph') {
         const para = new Paragraph({
@@ -103,10 +113,20 @@ function renderList(node: ListNode, config: ResolvedConfig): Paragraph[] {
             line: config.spacing.lineSpacing * 240,
             lineRule: 'auto',
           },
+          ...(firstParagraph ? {
+            numbering: {
+              reference,
+              level,
+              instance: currentInstance,
+            },
+          } : {
+            indent: { left: 720 * (level + 1) },
+          }),
         });
         paragraphs.push(para);
+        firstParagraph = false;
       } else if (child.type === 'list') {
-        paragraphs.push(...renderList(child, config));
+        paragraphs.push(...renderList(child, config, level + 1, currentInstance));
       } else {
         const rendered = renderBlockSync(child, config);
         for (const r of rendered) {

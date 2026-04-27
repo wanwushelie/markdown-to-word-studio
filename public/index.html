@@ -4,94 +4,145 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Markdown to Word Converter</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; }
-    .header { background: #2c3e50; color: white; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
-    .header h1 { font-size: 18px; font-weight: 500; }
-    .container { display: flex; height: calc(100vh - 50px); }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; color: #333; overflow: hidden; }
 
-    /* Editor column */
-    .editor-col { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #ddd; min-width: 0; }
-    .col-header { background: #fff; border-bottom: 1px solid #ddd; padding: 8px 12px; font-size: 12px; font-weight: 600; color: #666; display: flex; align-items: center; gap: 8px; }
+    /* Header */
+    .header { background: #2c3e50; color: white; padding: 10px 16px; display: flex; align-items: center; gap: 12px; height: 46px; flex-shrink: 0; }
+    .header h1 { font-size: 16px; font-weight: 500; white-space: nowrap; }
+    .header-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+    .header-btn { padding: 5px 10px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.1); color: white; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px; transition: background 0.2s; }
+    .header-btn:hover { background: rgba(255,255,255,0.2); }
+    .header-btn.active { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.4); }
+    .header-btn svg { width: 14px; height: 14px; }
+
+    /* Container */
+    .container { display: flex; height: calc(100vh - 46px); overflow: hidden; }
+
+    /* Columns */
+    .editor-col { flex: 0 0 auto; width: 360px; display: flex; flex-direction: column; background: #fafafa; min-width: 220px; max-width: 50vw; }
+    .preview-col { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 380px; background: #e8e8e8; }
+    .config-col { flex: 0 0 auto; width: 260px; display: flex; flex-direction: column; background: white; min-width: 200px; max-width: 40vw; }
+
+    /* Resizer */
+    .resizer { flex: 0 0 auto; width: 6px; background: #e0e0e0; cursor: col-resize; display: flex; align-items: center; justify-content: center; transition: background 0.15s; position: relative; z-index: 10; }
+    .resizer:hover, .resizer.resizing { background: #3498db; }
+    .resizer::after { content: ''; display: block; width: 2px; height: 28px; background: #bbb; border-radius: 1px; transition: background 0.15s; }
+    .resizer:hover::after, .resizer.resizing::after { background: white; }
+
+    /* Hidden state */
+    .hidden { display: none !important; }
+
+    /* Column headers */
+    .col-header { background: #fff; border-bottom: 1px solid #ddd; padding: 7px 12px; font-size: 12px; font-weight: 600; color: #666; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .col-header .tag { background: #e8f4fd; color: #3498db; padding: 2px 8px; border-radius: 3px; font-size: 11px; }
 
     /* Toolbar */
-    .toolbar { background: #fff; border-bottom: 1px solid #ddd; padding: 6px 10px; display: flex; gap: 4px; flex-wrap: wrap; }
-    .toolbar button { padding: 5px 10px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .toolbar { background: #fff; border-bottom: 1px solid #ddd; padding: 5px 10px; display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; }
+    .toolbar button { padding: 4px 8px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 12px; line-height: 1; }
     .toolbar button:hover { background: #f0f0f0; }
     .toolbar button.primary { background: #3498db; color: white; border-color: #3498db; }
     .toolbar button.primary:hover { background: #2980b9; }
 
-    textarea#markdown { flex: 1; padding: 16px; font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; line-height: 1.6; border: none; resize: none; outline: none; background: #fafafa; }
+    textarea#markdown { display: none; }
+    .editor-col .CodeMirror { flex: 1; min-height: 0; font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; line-height: 1.6; border: none; background: #fafafa; }
+    .editor-col .CodeMirror-gutters { background: #f0f0f0; border-right: 1px solid #ddd; }
+    .heading-sizes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .heading-sizes .form-group { margin-bottom: 4px; }
+    .heading-sizes .form-group label { font-size: 10px; }
+    .heading-sizes .form-group input { padding: 3px 5px; font-size: 11px; }
+    .color-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .color-row label { font-size: 11px; color: #888; flex: 1; }
+    .color-row input[type=color] { width: 28px; height: 22px; padding: 0; border: 1px solid #ddd; border-radius: 3px; cursor: pointer; }
 
-    /* Preview column */
-    .preview-col { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #ddd; min-width: 0; background: #e8e8e8; }
-    #preview-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-    #preview {
-      flex: 1;
-      width: 100%;
-      border: none;
-      background: white;
-    }
+    /* Preview */
+    #preview-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+    #preview { flex: 1; width: 100%; border: none; background: white; min-height: 0; }
     .preview-toolbar {
-      background: #fff;
-      border-bottom: 1px solid #ddd;
-      padding: 6px 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      background: #fff; border-bottom: 1px solid #ddd; padding: 5px 10px;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex-shrink: 0;
     }
     .preview-toolbar button {
-      padding: 5px 12px;
-      border: 1px solid #ddd;
-      background: white;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
+      padding: 4px 10px; border: 1px solid #ddd; background: white; border-radius: 4px;
+      cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px; white-space: nowrap;
     }
     .preview-toolbar button:hover { background: #f0f0f0; }
     .preview-toolbar button.primary { background: #3498db; color: white; border-color: #3498db; }
     .preview-toolbar button.primary:hover { background: #2980b9; }
-    .preview-toolbar button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .preview-error {
-      padding: 20px;
-      color: #e74c3c;
-      font-size: 13px;
-      text-align: center;
-    }
+    .preview-toolbar button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .preview-error { padding: 20px; color: #e74c3c; font-size: 13px; text-align: center; }
 
-    /* Config column */
-    .config-col { width: 280px; background: white; overflow-y: auto; padding: 12px; flex-shrink: 0; }
-    .config-section { margin-bottom: 16px; }
-    .config-section h3 { font-size: 13px; color: #666; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
-    .form-group { margin-bottom: 10px; }
+    /* Config */
+    .config-col { overflow-y: auto; }
+    .config-section { margin-bottom: 14px; padding: 0 12px; }
+    .config-section h3 { font-size: 12px; color: #666; margin: 10px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
+    .form-group { margin-bottom: 8px; }
     .form-group label { display: block; font-size: 11px; color: #888; margin-bottom: 3px; }
     .form-group input, .form-group select { width: 100%; padding: 5px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; }
     .form-group input:focus, .form-group select:focus { outline: none; border-color: #3498db; }
 
-    .status-bar { background: #fff; border-top: 1px solid #ddd; padding: 6px 12px; font-size: 11px; color: #888; display: flex; justify-content: space-between; }
+    .status-bar { background: #fff; border-top: 1px solid #ddd; padding: 5px 12px; font-size: 11px; color: #888; display: flex; justify-content: space-between; flex-shrink: 0; }
     .loading { opacity: 0.6; pointer-events: none; }
     .toast { position: fixed; bottom: 16px; right: 16px; padding: 10px 18px; border-radius: 6px; color: white; font-size: 13px; z-index: 1000; transition: opacity 0.3s; }
     .toast.success { background: #27ae60; }
     .toast.error { background: #e74c3c; }
+
+    /* Overlay hint for narrow iframe */
+    .iframe-hint {
+      position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white;
+      padding: 3px 8px; border-radius: 3px; font-size: 11px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 5;
+    }
+    .iframe-hint.show { opacity: 1; }
+
+    /* Layout when panels are hidden */
+    .container.preview-hidden .editor-col { flex: 1 1 auto; width: auto !important; }
+    .container.editor-hidden.preview-hidden .config-col { flex: 1 1 auto; width: auto !important; }
+    .container.editor-hidden:not(.preview-hidden) .preview-col { flex: 1 1 auto; }
+    .container.config-hidden:not(.preview-hidden) .preview-col { flex: 1 1 auto; }
+
+    /* Responsive */
+    @media (max-width: 1000px) {
+      .editor-col { width: 300px; min-width: 200px; }
+      .config-col { width: 220px; min-width: 180px; }
+    }
+    @media (max-width: 768px) {
+      .container { overflow-x: auto; }
+      .editor-col { min-width: 260px; }
+      .preview-col { min-width: 320px; }
+      .config-col { min-width: 180px; }
+    }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/xml/xml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/markdown/markdown.min.js"></script>
 </head>
 <body>
   <div class="header">
-    <h1>Markdown to Word Converter</h1>
-    <span style="font-size: 12px; opacity: 0.8;">TypeScript + docx.js + Collabora</span>
+    <h1>Markdown to Word</h1>
+    <div class="header-actions">
+      <button class="header-btn active" id="toggleEditor" title="Toggle Markdown Editor" onclick="toggleColumn('editor')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+        Editor
+      </button>
+      <button class="header-btn active" id="togglePreview" title="Toggle Preview Panel" onclick="toggleColumn('preview')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Preview
+      </button>
+      <button class="header-btn active" id="toggleConfig" title="Toggle Config Panel" onclick="toggleColumn('config')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 5 15.4a1.65 1.65 0 0 0-1.51 1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 5 9.6a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19 9.6a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Config
+      </button>
+      <span style="font-size: 11px; opacity: 0.7; margin-left: 4px;">TypeScript + docx.js + Collabora</span>
+    </div>
   </div>
 
-  <div class="container">
+  <div class="container" id="mainContainer">
     <!-- Editor -->
-    <div class="editor-col">
+    <div class="editor-col" id="editorCol">
       <div class="col-header">
         Markdown
         <span class="tag">Edit</span>
@@ -156,11 +207,18 @@ Visit [OpenAI](https://openai.com) for more info.
       </div>
     </div>
 
+    <div class="resizer" id="resizer1" data-target="editorCol" data-min="220" data-max="600"></div>
+
     <!-- Preview -->
-    <div class="preview-col">
+    <div class="preview-col" id="previewCol">
       <div class="col-header">
         Preview
-        <span class="tag" style="background:#f3e8fd;color:#8e44ad;">Collabora</span>
+        <select id="previewMode" onchange="changePreviewMode()" style="margin-left:8px;font-size:11px;padding:2px 4px;border-radius:3px;border:1px solid #ddd;background:#fff;outline:none;cursor:pointer;">
+          <option value="local">Local (Fast)</option>
+          <option value="pdf">PDF Preview (Hi-Fi)</option>
+          <option value="collabora">Collabora (Edit)</option>
+        </select>
+        <span class="tag" style="background:#e8f4fd;color:#3498db;" id="previewModeTag">docx-preview</span>
       </div>
       <div class="preview-toolbar">
         <button id="refreshBtn" onclick="refreshEditor()">
@@ -173,15 +231,22 @@ Visit [OpenAI](https://openai.com) for more info.
         <button id="exportPdfBtn" onclick="exportPdf()" disabled>
           Export PDF
         </button>
-        <span id="previewStatus" style="font-size:11px;color:#888;margin-left:auto;">Ready</span>
+        <label style="font-size:11px;display:flex;align-items:center;gap:3px;margin-left:auto;cursor:pointer;color:#666;">
+          <input type="checkbox" id="autoPreview" checked> Auto
+        </label>
+        <span id="previewStatus" style="font-size:11px;color:#888;">Ready</span>
       </div>
       <div id="preview-wrap">
-        <iframe id="preview" allow="fullscreen; clipboard-read; clipboard-write"></iframe>
+        <div id="local-preview" style="flex:1;overflow:auto;background:#e8e8e8;padding:20px;"></div>
+        <iframe id="preview" allow="fullscreen; clipboard-read; clipboard-write" style="display:none;"></iframe>
+        <div class="iframe-hint" id="iframeHint">Drag resizers or hide panels for more space</div>
       </div>
     </div>
 
+    <div class="resizer" id="resizer2" data-target="configCol" data-min="200" data-max="450"></div>
+
     <!-- Config -->
-    <div class="config-col">
+    <div class="config-col" id="configCol">
       <div class="config-section">
         <h3>Document Info</h3>
         <div class="form-group">
@@ -203,6 +268,7 @@ Visit [OpenAI](https://openai.com) for more info.
             <option value="SimSun">SimSun (宋体)</option>
             <option value="KaiTi">KaiTi (楷体)</option>
             <option value="Arial">Arial</option>
+            <option value="Times New Roman">Times New Roman</option>
           </select>
         </div>
         <div class="form-group">
@@ -218,6 +284,17 @@ Visit [OpenAI](https://openai.com) for more info.
           <input type="number" id="bodySize" value="11" min="8" max="72">
         </div>
         <div class="form-group">
+          <label>Heading Sizes (pt)</label>
+          <div class="heading-sizes">
+            <div class="form-group"><label>H1</label><input type="number" id="h1Size" value="22" min="8" max="72"></div>
+            <div class="form-group"><label>H2</label><input type="number" id="h2Size" value="18" min="8" max="72"></div>
+            <div class="form-group"><label>H3</label><input type="number" id="h3Size" value="16" min="8" max="72"></div>
+            <div class="form-group"><label>H4</label><input type="number" id="h4Size" value="14" min="8" max="72"></div>
+            <div class="form-group"><label>H5</label><input type="number" id="h5Size" value="12" min="8" max="72"></div>
+            <div class="form-group"><label>H6</label><input type="number" id="h6Size" value="11" min="8" max="72"></div>
+          </div>
+        </div>
+        <div class="form-group">
           <label>Line Spacing</label>
           <select id="lineSpacing">
             <option value="1">Single</option>
@@ -226,6 +303,14 @@ Visit [OpenAI](https://openai.com) for more info.
             <option value="2">Double</option>
           </select>
         </div>
+      </div>
+
+      <div class="config-section">
+        <h3>Colors</h3>
+        <div class="color-row"><label>Heading</label><input type="color" id="headingColor" value="#000000"></div>
+        <div class="color-row"><label>Link</label><input type="color" id="linkColor" value="#0563C1"></div>
+        <div class="color-row"><label>Code BG</label><input type="color" id="codeBgColor" value="#F5F5F5"></div>
+        <div class="color-row"><label>Quote Border</label><input type="color" id="quoteBorderColor" value="#CCCCCC"></div>
       </div>
 
       <div class="config-section">
@@ -251,6 +336,22 @@ Visit [OpenAI](https://openai.com) for more info.
       </div>
 
       <div class="config-section">
+        <h3>Header & Footer</h3>
+        <div class="form-group">
+          <label>Header Text</label>
+          <input type="text" id="headerText" value="" placeholder="e.g. Document Title">
+        </div>
+        <div class="form-group">
+          <label>Footer Text</label>
+          <input type="text" id="footerText" value="" placeholder="e.g. Confidential">
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:6px;">
+          <input type="checkbox" id="showPageNumbers" style="width:auto;">
+          <label style="margin:0;font-size:12px;color:#555;">Show page numbers</label>
+        </div>
+      </div>
+
+      <div class="config-section">
         <h3>Images</h3>
         <div class="form-group">
           <label>Max Width (%)</label>
@@ -271,6 +372,11 @@ Visit [OpenAI](https://openai.com) for more info.
   <div id="toast" class="toast" style="display:none;"></div>
 
   <script>
+    /* === Utility === */
+    function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+    function hexToDocx(hex) { return hex.replace('#', ''); }
+
+    /* === DOM refs === */
     const markdownEl = document.getElementById('markdown');
     const previewEl = document.getElementById('preview');
     const charCountEl = document.getElementById('charCount');
@@ -280,29 +386,148 @@ Visit [OpenAI](https://openai.com) for more info.
     const downloadBtn = document.getElementById('downloadBtn');
     const exportPdfBtn = document.getElementById('exportPdfBtn');
     const previewStatusEl = document.getElementById('previewStatus');
+    const editorCol = document.getElementById('editorCol');
+    const previewCol = document.getElementById('previewCol');
+    const configCol = document.getElementById('configCol');
+    const resizer1 = document.getElementById('resizer1');
+    const resizer2 = document.getElementById('resizer2');
+    const toggleEditorBtn = document.getElementById('toggleEditor');
+    const togglePreviewBtn = document.getElementById('togglePreview');
+    const toggleConfigBtn = document.getElementById('toggleConfig');
+    const iframeHint = document.getElementById('iframeHint');
+    const localPreviewEl = document.getElementById('local-preview');
+    const previewModeSelect = document.getElementById('previewMode');
+    const previewModeTag = document.getElementById('previewModeTag');
 
     let currentFileId = null;
     let currentAccessToken = null;
+    let currentLocalBlob = null;
+    let currentPdfBlob = null;
+    let currentPdfUrl = null;
+    const autoPreviewEl = document.getElementById('autoPreview');
 
-    const configEls = {
-      bodyFont: document.getElementById('bodyFont'),
-      headingFont: document.getElementById('headingFont'),
-      bodySize: document.getElementById('bodySize'),
-      lineSpacing: document.getElementById('lineSpacing'),
-      pageSize: document.getElementById('pageSize'),
-      orientation: document.getElementById('orientation'),
-      margins: document.getElementById('margins'),
-      imageWidth: document.getElementById('imageWidth'),
-      imageAlign: document.getElementById('imageAlign'),
-    };
+    /* === CodeMirror Editor === */
+    const cm = CodeMirror.fromTextArea(markdownEl, {
+      mode: 'markdown',
+      lineNumbers: true,
+      lineWrapping: true,
+      theme: 'default',
+      extraKeys: {
+        'Ctrl-B': () => insertText('**', '**'),
+        'Ctrl-I': () => insertText('*', '*'),
+        'Ctrl-S': (c) => { c.save(); convert(); },
+      },
+    });
 
-    function updateCharCount() {
-      charCountEl.textContent = `${markdownEl.value.length} chars`;
+    /* === Auto-preview on editor change === */
+    const debouncedPreview = debounce(() => {
+      if (autoPreviewEl.checked && previewModeSelect.value === 'local') refreshEditor();
+    }, 1500);
+    cm.on('change', () => {
+      charCountEl.textContent = `${cm.getValue().length} chars`;
+      debouncedPreview();
+    });
+    charCountEl.textContent = `${cm.getValue().length} chars`;
+
+    /* === Auto-preview on config change === */
+    const debouncedConfigPreview = debounce(() => {
+      if (autoPreviewEl.checked && previewModeSelect.value === 'local') refreshEditor();
+    }, 800);
+    document.getElementById('configCol').addEventListener('change', debouncedConfigPreview);
+    document.getElementById('configCol').addEventListener('input', debounce(debouncedConfigPreview, 500));
+
+    /* === Column widths from localStorage === */
+    function loadWidths() {
+      const ew = localStorage.getItem('editorWidth');
+      const cw = localStorage.getItem('configWidth');
+      if (ew) editorCol.style.width = ew + 'px';
+      if (cw) configCol.style.width = cw + 'px';
+    }
+    loadWidths();
+
+    /* === Toggle columns === */
+    function toggleColumn(which) {
+      const container = document.getElementById('mainContainer');
+      if (which === 'editor') {
+        editorCol.classList.toggle('hidden');
+        resizer1.classList.toggle('hidden');
+        toggleEditorBtn.classList.toggle('active', !editorCol.classList.contains('hidden'));
+        container.classList.toggle('editor-hidden', editorCol.classList.contains('hidden'));
+      } else if (which === 'preview') {
+        previewCol.classList.toggle('hidden');
+        resizer1.classList.toggle('hidden');
+        resizer2.classList.toggle('hidden');
+        togglePreviewBtn.classList.toggle('active', !previewCol.classList.contains('hidden'));
+        container.classList.toggle('preview-hidden', previewCol.classList.contains('hidden'));
+      } else {
+        configCol.classList.toggle('hidden');
+        resizer2.classList.toggle('hidden');
+        toggleConfigBtn.classList.toggle('active', !configCol.classList.contains('hidden'));
+        container.classList.toggle('config-hidden', configCol.classList.contains('hidden'));
+      }
+      checkIframeWidth();
     }
 
-    markdownEl.addEventListener('input', updateCharCount);
-    updateCharCount();
+    /* === Resizers === */
+    let resizing = null;
+    let startX = 0;
+    let startWidth = 0;
+    let targetEl = null;
+    let minW = 0;
+    let maxW = 0;
 
+    function onMouseDown(e, resizer) {
+      resizing = resizer;
+      targetEl = document.getElementById(resizer.dataset.target);
+      minW = parseInt(resizer.dataset.min, 10);
+      maxW = parseInt(resizer.dataset.max, 10);
+      startX = e.clientX;
+      startWidth = targetEl.offsetWidth;
+      resizer.classList.add('resizing');
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    }
+
+    resizer1.addEventListener('mousedown', (e) => onMouseDown(e, resizer1));
+    resizer2.addEventListener('mousedown', (e) => onMouseDown(e, resizer2));
+
+    document.addEventListener('mousemove', (e) => {
+      if (!resizing) return;
+      const dx = resizing.id === 'resizer1' ? e.clientX - startX : startX - e.clientX;
+      const newW = Math.max(minW, Math.min(maxW, startWidth + dx));
+      targetEl.style.width = newW + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!resizing) return;
+      resizing.classList.remove('resizing');
+      resizing = null;
+      document.body.style.userSelect = '';
+      if (targetEl) {
+        localStorage.setItem(targetEl.id === 'editorCol' ? 'editorWidth' : 'configWidth', targetEl.offsetWidth);
+        targetEl = null;
+      }
+      checkIframeWidth();
+    });
+
+    /* === Iframe width hint === */
+    function checkIframeWidth() {
+      if (previewCol.classList.contains('hidden')) {
+        iframeHint.classList.remove('show');
+        return;
+      }
+      const w = previewCol.offsetWidth;
+      if (w < 500) {
+        iframeHint.classList.add('show');
+        iframeHint.textContent = w < 380 ? 'Window too narrow — hide side panels' : 'Drag resizers or hide panels for more space';
+      } else {
+        iframeHint.classList.remove('show');
+      }
+    }
+    window.addEventListener('resize', checkIframeWidth);
+    checkIframeWidth();
+
+    /* === Editor helpers === */
     function getConfig() {
       const margins = parseInt(document.getElementById('margins').value) || 1440;
       return {
@@ -312,15 +537,25 @@ Visit [OpenAI](https://openai.com) for more info.
         },
         size: {
           body: parseInt(document.getElementById('bodySize').value) || 11,
+          heading1: parseInt(document.getElementById('h1Size').value) || 22,
+          heading2: parseInt(document.getElementById('h2Size').value) || 18,
+          heading3: parseInt(document.getElementById('h3Size').value) || 16,
+          heading4: parseInt(document.getElementById('h4Size').value) || 14,
+          heading5: parseInt(document.getElementById('h5Size').value) || 12,
+          heading6: parseInt(document.getElementById('h6Size').value) || 11,
         },
-        spacing: {
-          lineSpacing: parseFloat(document.getElementById('lineSpacing').value) || 1.5,
+        spacing: { lineSpacing: parseFloat(document.getElementById('lineSpacing').value) || 1.5 },
+        margin: { top: margins, bottom: margins, left: margins, right: margins },
+        color: {
+          heading: hexToDocx(document.getElementById('headingColor').value),
+          link: hexToDocx(document.getElementById('linkColor').value),
+          codeBackground: hexToDocx(document.getElementById('codeBgColor').value),
+          blockquoteBorder: hexToDocx(document.getElementById('quoteBorderColor').value),
         },
-        margin: {
-          top: margins,
-          bottom: margins,
-          left: margins,
-          right: margins,
+        headerFooter: {
+          header: document.getElementById('headerText').value || undefined,
+          footer: document.getElementById('footerText').value || undefined,
+          pageNumbers: document.getElementById('showPageNumbers').checked,
         },
         image: {
           maxWidthPercent: parseInt(document.getElementById('imageWidth').value) || 80,
@@ -338,40 +573,106 @@ Visit [OpenAI](https://openai.com) for more info.
       };
     }
 
+    /* === Preview Mode Switch === */
+    function changePreviewMode() {
+      const mode = previewModeSelect.value;
+      if (mode === 'local') {
+        previewModeTag.textContent = 'docx-preview';
+        previewModeTag.style.background = '#e8f4fd';
+        previewModeTag.style.color = '#3498db';
+        previewEl.style.display = 'none';
+        localPreviewEl.style.display = 'block';
+      } else if (mode === 'pdf') {
+        previewModeTag.textContent = 'PDF';
+        previewModeTag.style.background = '#e8fde8';
+        previewModeTag.style.color = '#27ae60';
+        previewEl.style.display = 'block';
+        localPreviewEl.style.display = 'none';
+      } else {
+        previewModeTag.textContent = 'Collabora';
+        previewModeTag.style.background = '#f3e8fd';
+        previewModeTag.style.color = '#8e44ad';
+        previewEl.style.display = 'block';
+        localPreviewEl.style.display = 'none';
+      }
+      refreshEditor();
+    }
+
+    /* === Collabora / Local integration === */
     async function refreshEditor() {
-      const markdown = markdownEl.value;
+      const markdown = cm.getValue();
       if (!markdown.trim()) {
         showToast('Please enter some Markdown content', 'error');
         return;
       }
-
       refreshBtn.disabled = true;
       previewStatusEl.textContent = 'Generating...';
-
+      const mode = previewModeSelect.value;
+      
       try {
-        const response = await fetch('/api/preview', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ markdown, config: getConfig(), meta: getMeta() }),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          if (response.status === 503) {
-            previewEl.srcdoc = `<div class="preview-error"><strong>Collabora Online unavailable</strong><br>${error.message || 'Please ensure docker-compose is running.'}</div>`;
-            throw new Error('Collabora unavailable');
+        if (mode === 'local') {
+          const response = await fetch('/api/convert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ markdown, config: getConfig(), meta: getMeta() }),
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Conversion failed');
           }
-          throw new Error(error.message || 'Preview generation failed');
+          currentLocalBlob = await response.blob();
+          
+          await docx.renderAsync(currentLocalBlob, localPreviewEl, null, {
+            inWrapper: true, ignoreWidth: false, ignoreHeight: false, ignoreFonts: false, breakPages: true, useBase64URL: true
+          });
+          
+          downloadBtn.disabled = false;
+          exportPdfBtn.disabled = false;
+          previewStatusEl.textContent = 'Ready';
+          showToast('Local preview loaded');
+        } else if (mode === 'pdf') {
+          const reqBody = JSON.stringify({ markdown, config: getConfig(), meta: getMeta() });
+          const headers = { 'Content-Type': 'application/json' };
+          
+          const pdfResponse = await fetch('/api/convert/pdf', {
+            method: 'POST', headers, body: reqBody,
+          });
+          if (!pdfResponse.ok) {
+            const error = await pdfResponse.json();
+            throw new Error(error.message || 'PDF conversion failed');
+          }
+          currentPdfBlob = await pdfResponse.blob();
+          if (currentPdfUrl) window.URL.revokeObjectURL(currentPdfUrl);
+          currentPdfUrl = window.URL.createObjectURL(currentPdfBlob);
+          previewEl.src = currentPdfUrl;
+          
+          downloadBtn.disabled = false;
+          exportPdfBtn.disabled = false;
+          previewStatusEl.textContent = 'Ready';
+          showToast('PDF preview loaded');
+        } else {
+          const response = await fetch('/api/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ markdown, config: getConfig(), meta: getMeta() }),
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            if (response.status === 503) {
+              previewEl.srcdoc = `<div class="preview-error"><strong>Collabora Online unavailable</strong><br>${error.message || 'Please ensure docker-compose is running.'}</div>`;
+              throw new Error('Collabora unavailable');
+            }
+            throw new Error(error.message || 'Preview generation failed');
+          }
+          const data = await response.json();
+          currentFileId = data.fileId;
+          currentAccessToken = data.accessToken;
+          previewEl.src = data.collaboraUrl;
+          downloadBtn.disabled = false;
+          exportPdfBtn.disabled = false;
+          previewStatusEl.textContent = 'Ready';
+          showToast('Collabora loaded');
         }
-
-        const data = await response.json();
-        currentFileId = data.fileId;
-        currentAccessToken = data.accessToken;
-        previewEl.src = data.collaboraUrl;
-        downloadBtn.disabled = false;
-        exportPdfBtn.disabled = false;
-        previewStatusEl.textContent = 'Ready';
-        showToast('Editor loaded');
       } catch (err) {
         previewStatusEl.textContent = 'Error';
         if (err.message !== 'Collabora unavailable') {
@@ -383,16 +684,13 @@ Visit [OpenAI](https://openai.com) for more info.
     }
 
     function insertText(before, after) {
-      const start = markdownEl.selectionStart;
-      const end = markdownEl.selectionEnd;
-      const text = markdownEl.value;
-      const selected = text.substring(start, end);
-      const replacement = before + selected + after;
-      markdownEl.value = text.substring(0, start) + replacement + text.substring(end);
-      markdownEl.focus();
-      markdownEl.selectionStart = start + before.length;
-      markdownEl.selectionEnd = start + before.length + selected.length;
-      updateCharCount();
+      const selected = cm.getSelection();
+      cm.replaceSelection(before + selected + after);
+      if (!selected) {
+        const cursor = cm.getCursor();
+        cm.setCursor(cursor.line, cursor.ch - after.length);
+      }
+      cm.focus();
     }
 
     function showToast(message, type = 'success') {
@@ -404,6 +702,46 @@ Visit [OpenAI](https://openai.com) for more info.
     }
 
     async function downloadDocx() {
+      const mode = previewModeSelect.value;
+      if (mode === 'local') {
+        if (!currentLocalBlob) return showToast('Please refresh the editor first', 'error');
+        const url = window.URL.createObjectURL(currentLocalBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${getMeta().title}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        showToast('Document downloaded');
+        return;
+      }
+
+      if (mode === 'pdf') {
+        // In PDF mode, generate docx on demand for download
+        try {
+          const response = await fetch('/api/convert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ markdown: markdownEl.value, config: getConfig(), meta: getMeta() }),
+          });
+          if (!response.ok) throw new Error('Download failed');
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${getMeta().title}.docx`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          showToast('Document downloaded');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+        return;
+      }
+
       if (!currentFileId || !currentAccessToken) {
         showToast('Please refresh the editor first', 'error');
         return;
@@ -427,15 +765,35 @@ Visit [OpenAI](https://openai.com) for more info.
     }
 
     async function exportPdf() {
-      if (!currentFileId || !currentAccessToken) {
-        showToast('Please refresh the editor first', 'error');
-        return;
-      }
       exportPdfBtn.disabled = true;
       try {
-        const response = await fetch(`/api/files/${currentFileId}/export/pdf?access_token=${encodeURIComponent(currentAccessToken)}`, {
-          method: 'POST',
-        });
+        const mode = previewModeSelect.value;
+        if (mode === 'pdf' && currentPdfBlob) {
+          // Already have the PDF from preview, download directly
+          const url = window.URL.createObjectURL(currentPdfBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${getMeta().title}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          showToast('PDF exported');
+          return;
+        }
+        
+        let response;
+        if (mode === 'local' || mode === 'pdf') {
+          response = await fetch('/api/convert/pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ markdown: cm.getValue(), config: getConfig(), meta: getMeta() }),
+          });
+        } else {
+          if (!currentFileId || !currentAccessToken) throw new Error('Please refresh the editor first');
+          response = await fetch(`/api/files/${currentFileId}/export/pdf?access_token=${encodeURIComponent(currentAccessToken)}`, { method: 'POST' });
+        }
+        
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.message || 'Export failed');
@@ -458,29 +816,25 @@ Visit [OpenAI](https://openai.com) for more info.
     }
 
     async function convert() {
-      const markdown = markdownEl.value;
+      const markdown = cm.getValue();
       if (!markdown.trim()) {
         showToast('Please enter some Markdown content', 'error');
         return;
       }
-
       convertBtn.disabled = true;
       convertBtn.textContent = 'Generating...';
       statusEl.textContent = 'Converting...';
       document.body.classList.add('loading');
-
       try {
         const response = await fetch('/api/convert', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ markdown, config: getConfig(), meta: getMeta() }),
         });
-
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.message || 'Conversion failed');
         }
-
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -490,7 +844,6 @@ Visit [OpenAI](https://openai.com) for more info.
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-
         showToast('Document downloaded successfully!');
         statusEl.textContent = 'Done';
       } catch (err) {
@@ -503,7 +856,7 @@ Visit [OpenAI](https://openai.com) for more info.
       }
     }
 
-    // Listen for PostMessage events from Collabora iframe
+    /* === PostMessage from Collabora === */
     window.addEventListener('message', (e) => {
       if (!e.data || typeof e.data !== 'string') return;
       try {
@@ -514,10 +867,20 @@ Visit [OpenAI](https://openai.com) for more info.
         if (msg.MessageId === 'Action_Save_Resp' && msg.Values && msg.Values.success) {
           showToast('Document saved in editor');
         }
-      } catch (_) {
-        // ignore non-JSON messages
-      }
+      } catch (_) {}
     });
+
+    /* === Responsive auto-hide on very small windows === */
+    function autoHideOnResize() {
+      const w = window.innerWidth;
+      if (w < 800 && !configCol.classList.contains('hidden')) {
+        toggleColumn('config');
+      }
+      if (w < 550 && !editorCol.classList.contains('hidden')) {
+        toggleColumn('editor');
+      }
+    }
+    window.addEventListener('resize', autoHideOnResize);
   </script>
 </body>
 </html>

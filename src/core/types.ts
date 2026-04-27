@@ -124,6 +124,11 @@ export interface LineBreakNode {
   type: 'lineBreak';
 }
 
+export interface StrikethroughNode {
+  type: 'strikethrough';
+  children: InlineNode[];
+}
+
 export type InlineNode =
   | TextNode
   | BoldNode
@@ -131,7 +136,8 @@ export type InlineNode =
   | UnderlineNode
   | InlineCodeNode
   | LinkNode
-  | LineBreakNode;
+  | LineBreakNode
+  | StrikethroughNode;
 
 // Configuration types
 export interface FontConfig {
