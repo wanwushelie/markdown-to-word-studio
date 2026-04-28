@@ -8,12 +8,32 @@ export interface ConvertPayload {
   meta: DocumentMeta;
 }
 
+function hexToDocx(hex: string): string {
+  return hex.replace('#', '');
+}
+
+function preparePayload(payload: ConvertPayload): ConvertPayload {
+  return {
+    ...payload,
+    config: {
+      ...payload.config,
+      color: {
+        heading: hexToDocx(payload.config.color.heading),
+        text: hexToDocx(payload.config.color.text),
+        link: hexToDocx(payload.config.color.link),
+        codeBackground: hexToDocx(payload.config.color.codeBackground),
+        blockquoteBorder: hexToDocx(payload.config.color.blockquoteBorder),
+      }
+    }
+  };
+}
+
 export const api = {
   async convertToDocx(payload: ConvertPayload): Promise<Blob> {
     const response = await fetch(`${API_BASE}/convert`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(preparePayload(payload)),
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Conversion failed' }));
@@ -26,7 +46,7 @@ export const api = {
     const response = await fetch(`${API_BASE}/convert/pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(preparePayload(payload)),
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'PDF Export failed' }));
@@ -39,7 +59,7 @@ export const api = {
     const response = await fetch(`${API_BASE}/preview`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(preparePayload(payload)),
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Preview generation failed' }));

@@ -66,10 +66,10 @@ export function ConfigPanel() {
       </Section>
 
       <Section title="Typography">
-        <FormGroup label="Body Font"><Input section="font" field="body" /></FormGroup>
-        <FormGroup label="Heading Font"><Input section="font" field="heading" /></FormGroup>
-        <FormGroup label="English Font"><Input section="font" field="english" /></FormGroup>
-        <FormGroup label="Code Font"><Input section="font" field="code" /></FormGroup>
+        <FormGroup label="Body Font"><Input section="font" field="body" list="fonts-list" /></FormGroup>
+        <FormGroup label="Heading Font"><Input section="font" field="heading" list="fonts-list" /></FormGroup>
+        <FormGroup label="English Font"><Input section="font" field="english" list="fonts-list" /></FormGroup>
+        <FormGroup label="Code Font"><Input section="font" field="code" list="fonts-list" /></FormGroup>
         
         <FormGroup label="Body Size (pt)"><Input section="size" field="body" type="number" min={8} max={72} /></FormGroup>
         
@@ -145,6 +145,22 @@ export function ConfigPanel() {
           </select>
         </FormGroup>
       </Section>
+
+      {/* Font datalist */}
+      <datalist id="fonts-list">
+        <option value="Microsoft YaHei">微软雅黑</option>
+        <option value="SimSun">宋体</option>
+        <option value="SimHei">黑体</option>
+        <option value="KaiTi">楷体</option>
+        <option value="FangSong">仿宋</option>
+        <option value="DengXian">等线</option>
+        <option value="STZhongsong">华文中宋</option>
+        <option value="Arial">Arial</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Consolas">Consolas</option>
+        <option value="Calibri">Calibri</option>
+        <option value="Courier New">Courier New</option>
+      </datalist>
     </div>
   );
 }

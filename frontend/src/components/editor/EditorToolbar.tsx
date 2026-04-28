@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from '../../store/useStore';
 import { api } from '../../services/api';
+import { showToast } from '../ui/Toast';
 
 interface EditorToolbarProps {
   onInsertText: (before: string, after: string) => void;
@@ -20,8 +21,9 @@ export function EditorToolbar({ onInsertText }: EditorToolbarProps) {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      showToast('Document downloaded successfully!');
     } catch (err) {
-      alert('Download failed: ' + (err as Error).message);
+      showToast('Download failed: ' + (err as Error).message, 'error');
     }
   };
 

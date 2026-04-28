@@ -4,6 +4,7 @@ import { renderAsync } from 'docx-preview';
 import { useStore, PreviewMode } from '../../store/useStore';
 import { api } from '../../services/api';
 import { htmlTemplates } from '../../utils/templates';
+import { showToast } from '../ui/Toast';
 
 const mdParser = new MarkdownIt({ html: true, linkify: true, typographer: true });
 
@@ -38,8 +39,12 @@ export function PreviewPanel() {
         setCollaboraData({ fileId: data.fileId, accessToken: data.accessToken, url: data.collaboraUrl });
       }
       setStatus('Ready');
+      if (previewMode === 'local') showToast('Local preview loaded');
+      if (previewMode === 'pdf') showToast('PDF preview loaded');
+      if (previewMode === 'collabora') showToast('Collabora loaded');
     } catch (error) {
-      setStatus('Error: ' + (error as Error).message);
+      setStatus('Error');
+      showToast((error as Error).message, 'error');
     }
   }, [markdown, config, meta, previewMode, previewContainer]);
 
@@ -74,8 +79,9 @@ export function PreviewPanel() {
       a.download = `${meta.title || 'document'}.docx`;
       a.click();
       URL.revokeObjectURL(url);
+      showToast('Document downloaded');
     } catch (e) {
-      alert('Download failed');
+      showToast('Download failed', 'error');
     }
   };
 
@@ -93,8 +99,9 @@ export function PreviewPanel() {
       a.download = `${meta.title || 'document'}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
+      showToast('PDF exported');
     } catch (e) {
-      alert('PDF Export failed');
+      showToast('PDF Export failed', 'error');
     }
   };
 
@@ -145,6 +152,24 @@ export function PreviewPanel() {
   const modeLabels: Record<PreviewMode, string> = {
     markdown: 'Markdown', html: 'HTML ✨', local: 'docx-preview', pdf: 'PDF', collabora: 'Collabora'
   };
+
+  // Collabora PostMessage listener
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (!e.data || typeof e.data !== 'string') return;
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.MessageId === 'App_LoadingStatus' && msg.Values?.Status === 'Document_Loaded') {
+          setStatus('Editor ready');
+        }
+        if (msg.MessageId === 'Action_Save_Resp' && msg.Values?.success) {
+          showToast('Document saved in editor');
+        }
+      } catch (_) {}
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   return (
     <div className="flex-1 flex flex-col min-w-[380px] bg-gray-200">

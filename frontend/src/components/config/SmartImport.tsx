@@ -111,6 +111,47 @@ export function SmartImport() {
     }
   };
 
+  const handleExport = () => {
+    const { config, meta } = useStore.getState();
+    const lines = [
+      `body-font: ${config.font.body}`,
+      `heading-font: ${config.font.heading}`,
+      `english-font: ${config.font.english}`,
+      `code-font: ${config.font.code}`,
+      `body-size: ${config.size.body}`,
+      `h1-size: ${config.size.heading1}`,
+      `h2-size: ${config.size.heading2}`,
+      `h3-size: ${config.size.heading3}`,
+      `h4-size: ${config.size.heading4}`,
+      `h5-size: ${config.size.heading5}`,
+      `h6-size: ${config.size.heading6}`,
+      `code-size: ${config.size.code}`,
+      `line-spacing: ${config.spacing.lineSpacing}`,
+      `paragraph-spacing: ${config.spacing.paragraphSpacing}`,
+      `heading-spacing: ${config.spacing.headingSpacing}`,
+      `margin-top: ${config.margin.top}`,
+      `margin-bottom: ${config.margin.bottom}`,
+      `margin-left: ${config.margin.left}`,
+      `margin-right: ${config.margin.right}`,
+      `heading-color: ${config.color.heading}`,
+      `text-color: ${config.color.text}`,
+      `link-color: ${config.color.link}`,
+      `code-bg-color: ${config.color.codeBackground}`,
+      `quote-border-color: ${config.color.blockquoteBorder}`,
+      `page-size: ${config.pageSize}`,
+      `orientation: ${config.orientation}`,
+      `header-text: ${config.headerFooter.header}`,
+      `footer-text: ${config.headerFooter.footer}`,
+      `page-numbers: ${config.headerFooter.pageNumbers}`,
+      `image-max-width: ${config.image.maxWidthPercent}`,
+      `image-align: ${config.image.defaultAlign}`,
+      `doc-title: ${meta.title}`,
+      `doc-author: ${meta.author}`,
+    ];
+    setInput(lines.join('\n'));
+    setStatus({ message: 'Config exported. You can copy this text.', type: 'success' });
+  };
+
   const copySpec = () => {
     if (specContent) {
       navigator.clipboard.writeText(specContent);
@@ -154,6 +195,9 @@ export function SmartImport() {
             </select>
             <button onClick={handleApply} className="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 text-white border border-indigo-600 rounded text-[11px] transition-colors">
               Apply
+            </button>
+            <button onClick={handleExport} className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-100 rounded text-[11px] transition-colors">
+              Export
             </button>
           </div>
           {status.message && (
