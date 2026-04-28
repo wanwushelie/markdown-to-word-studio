@@ -1,13 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import MarkdownIt from 'markdown-it';
 import { useStore } from '../../store/useStore';
 import { PRESETS } from '../../utils/templates';
 import { parseSmartInput } from '../../utils/smartParser';
+import { useI18n } from '../../i18n';
 
 const mdParser = new MarkdownIt({ html: true, linkify: true, typographer: true });
 
 export function SmartImport() {
   const { updateConfig, updateMeta } = useStore();
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<{ message: string; type: 'success' | 'error' | '' }>({ message: '', type: '' });
@@ -15,29 +17,27 @@ export function SmartImport() {
   const [showSpec, setShowSpec] = useState(false);
 
   const fetchSpec = async () => {
-    if (specContent && !specContent.startsWith('Failed')) return; // already loaded successfully
+    if (specContent && !specContent.startsWith(t('specLoadFailed'))) return;
     try {
       const res = await fetch('/CONFIG_SPEC.md');
       const text = await res.text();
-      // Guard against HTML error pages
       if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        setSpecContent('Failed to load CONFIG_SPEC.md — the server returned an error page.');
+        setSpecContent(`${t('specLoadFailed')}: the server returned an error page.`);
       } else {
         setSpecContent(text);
       }
     } catch {
-      setSpecContent('Failed to load CONFIG_SPEC.md');
+      setSpecContent(t('specLoadFailed'));
     }
   };
 
   const handleApply = () => {
     if (!input.trim()) {
-      setStatus({ message: 'Please paste config text first.', type: 'error' });
+      setStatus({ message: t('pasteConfigFirst'), type: 'error' });
       return;
     }
     try {
       const parsed = parseSmartInput(input);
-      
       const configUpdates: any = { font: {}, size: {}, spacing: {}, margin: {}, color: {}, headerFooter: {}, image: {} };
       let applied = 0;
 
@@ -45,7 +45,6 @@ export function SmartImport() {
       if (parsed['heading-font']) { configUpdates.font.heading = parsed['heading-font']; applied++; }
       if (parsed['english-font']) { configUpdates.font.english = parsed['english-font']; applied++; }
       if (parsed['code-font']) { configUpdates.font.code = parsed['code-font']; applied++; }
-      
       if (parsed['body-size']) { configUpdates.size.body = parsed['body-size']; applied++; }
       if (parsed['h1-size']) { configUpdates.size.heading1 = parsed['h1-size']; applied++; }
       if (parsed['h2-size']) { configUpdates.size.heading2 = parsed['h2-size']; applied++; }
@@ -54,29 +53,23 @@ export function SmartImport() {
       if (parsed['h5-size']) { configUpdates.size.heading5 = parsed['h5-size']; applied++; }
       if (parsed['h6-size']) { configUpdates.size.heading6 = parsed['h6-size']; applied++; }
       if (parsed['code-size']) { configUpdates.size.code = parsed['code-size']; applied++; }
-
       if (parsed['line-spacing']) { configUpdates.spacing.lineSpacing = parsed['line-spacing']; applied++; }
       if (parsed['paragraph-spacing']) { configUpdates.spacing.paragraphSpacing = parsed['paragraph-spacing']; applied++; }
       if (parsed['heading-spacing']) { configUpdates.spacing.headingSpacing = parsed['heading-spacing']; applied++; }
-
       if (parsed['margin-top']) { configUpdates.margin.top = parsed['margin-top']; applied++; }
       if (parsed['margin-bottom']) { configUpdates.margin.bottom = parsed['margin-bottom']; applied++; }
       if (parsed['margin-left']) { configUpdates.margin.left = parsed['margin-left']; applied++; }
       if (parsed['margin-right']) { configUpdates.margin.right = parsed['margin-right']; applied++; }
-
       if (parsed['heading-color']) { configUpdates.color.heading = parsed['heading-color']; applied++; }
       if (parsed['text-color']) { configUpdates.color.text = parsed['text-color']; applied++; }
       if (parsed['link-color']) { configUpdates.color.link = parsed['link-color']; applied++; }
       if (parsed['code-bg-color']) { configUpdates.color.codeBackground = parsed['code-bg-color']; applied++; }
       if (parsed['quote-border-color']) { configUpdates.color.blockquoteBorder = parsed['quote-border-color']; applied++; }
-
       if (parsed['header-text']) { configUpdates.headerFooter.header = parsed['header-text']; applied++; }
       if (parsed['footer-text']) { configUpdates.headerFooter.footer = parsed['footer-text']; applied++; }
       if (parsed['page-numbers'] !== undefined) { configUpdates.headerFooter.pageNumbers = parsed['page-numbers']; applied++; }
-
       if (parsed['image-max-width']) { configUpdates.image.maxWidthPercent = parsed['image-max-width']; applied++; }
       if (parsed['image-align']) { configUpdates.image.defaultAlign = parsed['image-align']; applied++; }
-
       if (parsed['page-size']) { configUpdates.pageSize = parsed['page-size']; applied++; }
       if (parsed['orientation']) { configUpdates.orientation = parsed['orientation']; applied++; }
 
@@ -98,17 +91,15 @@ export function SmartImport() {
         applied++;
       }
 
-      setStatus({ message: `Success: applied ${applied} settings.`, type: 'success' });
+      setStatus({ message: t('configApplied', { count: applied }), type: 'success' });
     } catch (e) {
-      setStatus({ message: 'Error parsing config: ' + (e as Error).message, type: 'error' });
+      setStatus({ message: t('parseConfigError') + (e as Error).message, type: 'error' });
     }
   };
 
   const handlePresetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
-    if (val && PRESETS[val]) {
-      setInput(PRESETS[val]);
-    }
+    if (val && PRESETS[val]) setInput(PRESETS[val]);
   };
 
   const handleExport = () => {
@@ -149,32 +140,25 @@ export function SmartImport() {
       `doc-author: ${meta.author}`,
     ];
     setInput(lines.join('\n'));
-    setStatus({ message: 'Config exported. You can copy this text.', type: 'success' });
+    setStatus({ message: t('configExported'), type: 'success' });
   };
 
   const copySpec = () => {
-    if (specContent) {
-      navigator.clipboard.writeText(specContent);
-      setStatus({ message: 'Spec copied to clipboard!', type: 'success' });
-      setTimeout(() => setStatus({ message: '', type: '' }), 3000);
-    }
+    if (!specContent) return;
+    navigator.clipboard.writeText(specContent);
+    setStatus({ message: t('specCopied'), type: 'success' });
+    setTimeout(() => setStatus({ message: '', type: '' }), 3000);
   };
 
   return (
     <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-md mx-3 my-2 p-2.5">
       <div className="flex justify-between items-center">
-        <h3 
-          className="flex items-center gap-1.5 text-xs font-medium text-gray-700 cursor-pointer select-none m-0"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          <span className={`transition-transform duration-200 inline-block text-[10px] ${isOpen ? 'rotate-90' : ''}`}>▶</span>
-          Smart Config Import
+        <h3 className="flex items-center gap-1.5 text-xs font-medium text-gray-700 cursor-pointer select-none m-0" onClick={() => setIsOpen(!isOpen)}>
+          <span className={`transition-transform duration-200 inline-block text-[10px] ${isOpen ? 'rotate-90' : ''}`}>›</span>
+          {t('smartImport')}
         </h3>
-        <button 
-          onClick={() => { fetchSpec(); setShowSpec(true); }}
-          className="text-[10px] text-indigo-600 hover:text-indigo-800 underline"
-        >
-          View Spec
+        <button onClick={() => { fetchSpec(); setShowSpec(true); }} className="text-[10px] text-indigo-600 hover:text-indigo-800 underline">
+          {t('viewSpec')}
         </button>
       </div>
       
@@ -183,21 +167,21 @@ export function SmartImport() {
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder="Paste config text from AI here..."
+            placeholder={t('pasteConfig')}
             className="w-full h-24 border border-gray-300 rounded p-1.5 text-[11px] font-mono resize-y bg-white/80 focus:border-indigo-400 focus:outline-none"
           />
           <div className="flex gap-1 mt-1.5 flex-wrap">
             <select onChange={handlePresetChange} className="flex-1 min-w-0 p-1 border border-gray-300 rounded text-[11px] bg-white">
-              <option value="">-- Load Preset --</option>
-              <option value="academic">Academic Paper</option>
-              <option value="business">Business Report</option>
-              <option value="resume">Resume</option>
+              <option value="">{t('loadPreset')}</option>
+              <option value="academic">{t('academicPaper')}</option>
+              <option value="business">{t('businessReport')}</option>
+              <option value="resume">{t('resume')}</option>
             </select>
             <button onClick={handleApply} className="px-2 py-1 bg-indigo-500 hover:bg-indigo-600 text-white border border-indigo-600 rounded text-[11px] transition-colors">
-              Apply
+              {t('apply')}
             </button>
             <button onClick={handleExport} className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-100 rounded text-[11px] transition-colors">
-              Export
+              {t('export')}
             </button>
           </div>
           {status.message && (
@@ -212,26 +196,20 @@ export function SmartImport() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowSpec(false)}>
           <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 shrink-0">
-              <h2 className="text-sm font-semibold">📋 Config Specification (For AI)</h2>
-              <button onClick={() => setShowSpec(false)} className="text-gray-400 hover:text-black text-lg leading-none">✕</button>
+              <h2 className="text-sm font-semibold">{t('specTitle')}</h2>
+              <button onClick={() => setShowSpec(false)} className="text-gray-400 hover:text-black text-lg leading-none" aria-label={t('close')}>×</button>
             </div>
             <div className="overflow-y-auto flex-1 p-6 bg-white">
               {specContent ? (
-                <div 
-                  className="md-preview"
-                  dangerouslySetInnerHTML={{ __html: mdParser.render(specContent) }}
-                />
+                <div className="md-preview" dangerouslySetInnerHTML={{ __html: mdParser.render(specContent) }} />
               ) : (
-                <p className="text-gray-400 text-center py-8">Loading...</p>
+                <p className="text-gray-400 text-center py-8">{t('loading')}</p>
               )}
             </div>
             <div className="px-4 py-3 border-t border-gray-200 flex justify-between items-center bg-gray-50 shrink-0 rounded-b-lg">
-              <span className="text-[11px] text-gray-500">💡 Copy the raw Markdown and send it to your AI assistant.</span>
-              <button 
-                onClick={copySpec}
-                className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs transition-colors"
-              >
-                📋 Copy Raw Markdown
+              <span className="text-[11px] text-gray-500">{t('copySpecHint')}</span>
+              <button onClick={copySpec} className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs transition-colors">
+                {t('copyRawMarkdown')}
               </button>
             </div>
           </div>

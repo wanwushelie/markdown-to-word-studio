@@ -5,26 +5,42 @@ import { useStore, PreviewMode } from '../../store/useStore';
 import { api } from '../../services/api';
 import { htmlTemplates } from '../../utils/templates';
 import { showToast } from '../ui/Toast';
+import { useI18n } from '../../i18n';
+import { HtmlStyleImport } from './HtmlStyleImport';
 
 const mdParser = new MarkdownIt({ html: true, linkify: true, typographer: true });
 
 export function PreviewPanel() {
-  const { markdown, config, meta, previewMode, setPreviewMode, htmlTemplate, setHtmlTemplate, autoPreview, setAutoPreview } = useStore();
-  const [status, setStatus] = useState('Ready');
+  const { markdown, config, meta, previewMode, setPreviewMode, htmlTemplate, setHtmlTemplate, autoPreview, setAutoPreview, htmlStyles, language, capabilities } = useStore();
+  const { t } = useI18n();
+  const [status, setStatus] = useState(t('ready'));
   const [localDocxUrl, setLocalDocxUrl] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [collaboraData, setCollaboraData] = useState<{ fileId: string; accessToken: string; url: string } | null>(null);
   const [previewContainer, setPreviewContainer] = useState<HTMLDivElement | null>(null);
+  const availableModes: PreviewMode[] = [
+    'markdown',
+    'html',
+    ...(capabilities.localPreview ? ['local' as const] : []),
+    ...(capabilities.pdfLocal ? ['pdf' as const] : []),
+    ...(capabilities.collabora ? ['collabora' as const] : []),
+  ];
 
-  const generatePreview = useCallback(async () => {
+  useEffect(() => {
+    setStatus(t('ready'));
+  }, [t]);
+
+  const generatePreview = useCallback(async (trigger: 'auto' | 'manual' | 'mode' = 'manual') => {
     if (!markdown.trim()) return;
-    setStatus('Generating...');
+    setStatus(t('generating'));
 
     try {
       if (previewMode === 'local') {
         const blob = await api.convertToDocx({ markdown, config, meta });
-        if (localDocxUrl) URL.revokeObjectURL(localDocxUrl);
-        setLocalDocxUrl(URL.createObjectURL(blob));
+        setLocalDocxUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return URL.createObjectURL(blob);
+        });
         if (previewContainer) {
           await renderAsync(blob, previewContainer, undefined, {
             inWrapper: true, ignoreWidth: false, ignoreHeight: false, ignoreFonts: false, breakPages: true, useBase64URL: true
@@ -32,93 +48,124 @@ export function PreviewPanel() {
         }
       } else if (previewMode === 'pdf') {
         const blob = await api.convertToPdf({ markdown, config, meta });
-        if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-        setPdfUrl(URL.createObjectURL(blob));
+        setPdfUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return URL.createObjectURL(blob);
+        });
       } else if (previewMode === 'collabora') {
         const data = await api.createPreviewSession({ markdown, config, meta });
         setCollaboraData({ fileId: data.fileId, accessToken: data.accessToken, url: data.collaboraUrl });
       }
-      setStatus('Ready');
-      if (previewMode === 'local') showToast('Local preview loaded');
-      if (previewMode === 'pdf') showToast('PDF preview loaded');
-      if (previewMode === 'collabora') showToast('Collabora loaded');
+      setStatus(t('ready'));
+      if (trigger !== 'auto') {
+        if (previewMode === 'local') showToast(t('localPreviewLoaded'), 'success', { dedupeMs: 1200 });
+        if (previewMode === 'pdf') showToast(t('pdfPreviewLoaded'), 'success', { dedupeMs: 1200 });
+        if (previewMode === 'collabora') showToast(t('collaboraLoaded'), 'success', { dedupeMs: 1200 });
+      }
     } catch (error) {
-      setStatus('Error');
-      showToast((error as Error).message, 'error');
+      setStatus(t('error'));
+      showToast((error as Error).message, 'error', { dedupeMs: 1200 });
     }
-  }, [markdown, config, meta, previewMode, previewContainer]);
+  }, [markdown, config, meta, previewMode, previewContainer, t]);
 
   useEffect(() => {
     if (!autoPreview) return;
     const timer = setTimeout(() => {
       if (previewMode === 'local' || previewMode === 'markdown' || previewMode === 'html') {
-        generatePreview();
+        generatePreview('auto');
       }
     }, 800);
     return () => clearTimeout(timer);
   }, [markdown, config, autoPreview, previewMode, generatePreview]);
 
-  // Load preview on mode change
   useEffect(() => {
-    generatePreview();
-  }, [previewMode, htmlTemplate]);
+    generatePreview('mode');
+  }, [previewMode, htmlTemplate, generatePreview]);
+
+  useEffect(() => {
+    if (!availableModes.includes(previewMode)) {
+      setPreviewMode('markdown');
+    }
+  }, [availableModes, previewMode, setPreviewMode]);
+
+  useEffect(() => {
+    if (previewMode !== 'local') {
+      if (previewContainer) {
+        previewContainer.innerHTML = '';
+      }
+      setLocalDocxUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    }
+    if (previewMode !== 'pdf') {
+      setPdfUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    }
+    if (previewMode !== 'collabora') {
+      setCollaboraData(null);
+    }
+  }, [previewMode]);
 
   const handleDownload = async () => {
     try {
-      let blob;
-      if (previewMode === 'collabora' && collaboraData) {
-        blob = await api.downloadCollaboraFile(collaboraData.fileId, collaboraData.accessToken);
-      } else if (previewMode === 'pdf') {
-        blob = await api.convertToDocx({ markdown, config, meta });
-      } else {
-        blob = await api.convertToDocx({ markdown, config, meta });
-      }
+      const blob = previewMode === 'collabora' && collaboraData
+        ? await api.downloadCollaboraFile(collaboraData.fileId, collaboraData.accessToken)
+        : await api.convertToDocx({ markdown, config, meta });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${meta.title || 'document'}.docx`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast('Document downloaded');
+      showToast(t('downloadSuccess'));
     } catch (e) {
-      showToast('Download failed', 'error');
+      showToast(t('downloadFailed'), 'error');
     }
   };
 
   const handleExportPdf = async () => {
+    if (!capabilities.pdfLocal) {
+      showToast('PDF export is unavailable in current environment.', 'error');
+      return;
+    }
     try {
-      let blob;
-      if (previewMode === 'collabora' && collaboraData) {
-        blob = await api.exportCollaboraPdf(collaboraData.fileId, collaboraData.accessToken);
-      } else {
-        blob = await api.convertToPdf({ markdown, config, meta });
-      }
+      const blob = previewMode === 'collabora' && collaboraData
+        ? await api.exportCollaboraPdf(collaboraData.fileId, collaboraData.accessToken)
+        : await api.convertToPdf({ markdown, config, meta });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${meta.title || 'document'}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast('PDF exported');
+      showToast(t('pdfExported'));
     } catch (e) {
-      showToast('PDF Export failed', 'error');
+      showToast(t('pdfExportFailed'), 'error');
     }
+  };
+
+  const openCollaboraInNewWindow = () => {
+    if (!collaboraData?.url) return;
+    window.open(collaboraData.url, '_blank', 'noopener,noreferrer');
   };
 
   const renderContent = () => {
     if (previewMode === 'markdown') {
       return (
-        <div className="flex-1 overflow-auto bg-gray-200 p-5">
-          <div className="bg-white p-6 rounded shadow max-w-[800px] mx-auto md-preview"
-               dangerouslySetInnerHTML={{ __html: mdParser.render(markdown) }} />
+        <div key="preview-markdown" className="flex-1 overflow-auto bg-gray-200 p-5">
+          <div className="bg-white p-6 rounded shadow max-w-[800px] mx-auto md-preview" dangerouslySetInnerHTML={{ __html: mdParser.render(markdown) }} />
         </div>
       );
     }
     if (previewMode === 'html') {
-      const css = htmlTemplates[htmlTemplate] || htmlTemplates.modernDark;
+      const selected = htmlStyles.find((style) => style.id === htmlTemplate);
+      const css = selected?.css || htmlTemplates[htmlTemplate] || htmlTemplates.modernDark;
       const isGlass = htmlTemplate === 'glassmorphism';
       return (
-        <div className="flex-1 overflow-auto bg-gray-200">
+        <div key="preview-html" className="flex-1 overflow-auto bg-gray-200">
           <style>{css}</style>
           <div className="html-creative-preview min-h-full">
             <div className={isGlass ? 'glass-container' : ''} dangerouslySetInnerHTML={{ __html: mdParser.render(markdown) }} />
@@ -126,15 +173,9 @@ export function PreviewPanel() {
         </div>
       );
     }
-    if (previewMode === 'local') {
-      return <div className="flex-1 overflow-auto bg-gray-200 p-5" ref={setPreviewContainer} />;
-    }
-    if (previewMode === 'pdf') {
-      return <iframe src={pdfUrl || ''} className="flex-1 w-full border-none bg-white" />;
-    }
-    if (previewMode === 'collabora') {
-      return <iframe src={collaboraData?.url || ''} allow="fullscreen; clipboard-read; clipboard-write" className="flex-1 w-full border-none bg-white" />;
-    }
+    if (previewMode === 'local') return <div key="preview-local" className="flex-1 overflow-auto bg-gray-200 p-5" ref={setPreviewContainer} />;
+    if (previewMode === 'pdf') return <iframe key="preview-pdf" title="PDF preview" src={pdfUrl || ''} className="flex-1 w-full border-none bg-white" />;
+    if (previewMode === 'collabora') return <iframe key="preview-collabora" title="Collabora preview" src={collaboraData?.url || ''} allow="fullscreen; clipboard-read; clipboard-write" className="flex-1 w-full border-none bg-white" />;
     return null;
   };
 
@@ -150,85 +191,78 @@ export function PreviewPanel() {
   };
 
   const modeLabels: Record<PreviewMode, string> = {
-    markdown: 'Markdown', html: 'HTML ✨', local: 'docx-preview', pdf: 'PDF', collabora: 'Collabora'
+    markdown: 'Markdown', html: 'HTML', local: 'docx-preview', pdf: 'PDF', collabora: 'Collabora'
   };
 
-  // Collabora PostMessage listener
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (!e.data || typeof e.data !== 'string') return;
       try {
         const msg = JSON.parse(e.data);
         if (msg.MessageId === 'App_LoadingStatus' && msg.Values?.Status === 'Document_Loaded') {
-          setStatus('Editor ready');
+          setStatus(t('editorReady'));
         }
         if (msg.MessageId === 'Action_Save_Resp' && msg.Values?.success) {
-          showToast('Document saved in editor');
+          showToast(t('docSavedInEditor'));
         }
       } catch (_) {}
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [t]);
 
   return (
     <div className="flex-1 flex flex-col min-w-[380px] bg-gray-200">
       <div className="bg-white border-b border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 flex items-center shrink-0 flex-wrap gap-2">
-        Preview
-        <select 
-          value={previewMode} 
-          onChange={e => setPreviewMode(e.target.value as PreviewMode)}
-          className="ml-2 text-[11px] py-0.5 px-1 rounded border border-gray-300 bg-white cursor-pointer"
-        >
-          <option value="markdown">Markdown (Instant)</option>
-          <option value="html">HTML Creative ✨</option>
-          <option value="local">Docx Preview (Fast)</option>
-          <option value="pdf">PDF Preview (Hi-Fi)</option>
-          <option value="collabora">Collabora (Edit)</option>
+        {t('preview')}
+        <select value={previewMode} onChange={e => setPreviewMode(e.target.value as PreviewMode)} className="ml-2 text-[11px] py-0.5 px-1 rounded border border-gray-300 bg-white cursor-pointer">
+          <option value="markdown">{t('modeMarkdown')}</option>
+          <option value="html">{t('modeHtml')}</option>
+          {capabilities.localPreview && <option value="local">{t('modeLocal')}</option>}
+          {capabilities.pdfLocal && <option value="pdf">{t('modePdf')}</option>}
+          {capabilities.collabora && <option value="collabora">{t('modeCollabora')}</option>}
         </select>
 
         {previewMode === 'html' && (
-          <select 
-            value={htmlTemplate} 
-            onChange={e => setHtmlTemplate(e.target.value)}
-            className="text-[11px] py-0.5 px-1 rounded border border-gray-300 bg-white cursor-pointer"
-          >
-            <option value="modernDark">🌙 Modern Dark</option>
-            <option value="glassmorphism">🔮 Glassmorphism</option>
-            <option value="magazine">📰 Editorial</option>
-            <option value="neonCyber">⚡ Neon Cyber</option>
+          <select value={htmlTemplate} onChange={e => setHtmlTemplate(e.target.value)} className="text-[11px] py-0.5 px-1 rounded border border-gray-300 bg-white cursor-pointer max-w-[260px]">
+            {htmlStyles.map((style) => (
+              <option key={style.id} value={style.id}>
+                {language === 'zh-CN'
+                  ? `${style.nameZh} (${style.nameEn})`
+                  : `${style.nameEn} (${style.nameZh})`}
+              </option>
+            ))}
           </select>
         )}
 
-        <span className={`px-2 py-0.5 rounded text-[11px] ${getModeTagStyle()}`}>
-          {modeLabels[previewMode]}
-        </span>
+        <span className={`px-2 py-0.5 rounded text-[11px] ${getModeTagStyle()}`}>{modeLabels[previewMode]}</span>
       </div>
 
       <div className="bg-white border-b border-gray-200 px-2.5 py-1.5 flex gap-1.5 items-center shrink-0 flex-wrap">
-        <button onClick={generatePreview} className="px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-100">
-          Refresh
+        <button onClick={() => generatePreview('manual')} className="px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-100">{t('refresh')}</button>
+        <button onClick={handleDownload} disabled={!localDocxUrl && !pdfUrl && !collaboraData} className="px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-100 disabled:opacity-50">
+          {t('downloadDocx')}
         </button>
-        <button 
-          onClick={handleDownload} 
-          disabled={!localDocxUrl && !pdfUrl && !collaboraData}
-          className="px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-100 disabled:opacity-50"
-        >
-          Download .docx
-        </button>
-        <button 
-          onClick={handleExportPdf} 
-          disabled={!localDocxUrl && !pdfUrl && !collaboraData}
-          className="px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-100 disabled:opacity-50"
-        >
-          Export PDF
+        <button onClick={handleExportPdf} disabled={!capabilities.pdfLocal || (!localDocxUrl && !pdfUrl && !collaboraData)} className="px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-100 disabled:opacity-50">
+          {t('exportPdf')}
         </button>
         <label className="flex items-center gap-1 text-[11px] text-gray-600 ml-auto cursor-pointer">
           <input type="checkbox" checked={autoPreview} onChange={e => setAutoPreview(e.target.checked)} />
-          Auto
+          {t('auto')}
         </label>
-        <span className="text-[11px] text-gray-500 w-16 text-right">{status}</span>
+        {previewMode === 'collabora' && collaboraData?.url && (
+          <button
+            onClick={openCollaboraInNewWindow}
+            className="px-2 py-1 border border-gray-200 rounded text-xs hover:bg-gray-100"
+            title={language === 'zh-CN' ? '若内嵌预览异常，使用新窗口打开' : 'Open in a new window when iframe preview fails'}
+          >
+            {language === 'zh-CN' ? '新窗口打开' : 'Open Window'}
+          </button>
+        )}
+        <span className="text-[11px] text-gray-500 w-20 text-right">{status}</span>
       </div>
+
+      {previewMode === 'html' && <HtmlStyleImport />}
 
       {renderContent()}
     </div>

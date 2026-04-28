@@ -8,9 +8,57 @@ import libreoffice from 'libreoffice-convert';
 import * as token from '../wopi/token.js';
 import * as storage from '../wopi/storage.js';
 import { getEditUrlSrc } from '../wopi/discovery.js';
+import { getRuntimeCapabilities, getRuntimeDiagnostics, refreshRuntimeCapabilities } from '../core/capabilities.js';
+import { getRuntimeSettings, updateRuntimeSettings } from '../core/runtime-settings.js';
 
 const router = Router();
 const convertToPdf = promisify(libreoffice.convert);
+
+router.get('/runtime/settings', (_req, res) => {
+  res.json({
+    settings: getRuntimeSettings(),
+    capabilities: getRuntimeCapabilities(),
+    diagnostics: getRuntimeDiagnostics(),
+  });
+});
+
+router.post('/runtime/settings', (req, res) => {
+  try {
+    const { libreOfficePath } = req.body ?? {};
+    const settings = updateRuntimeSettings({
+      libreOfficePath: typeof libreOfficePath === 'string' ? libreOfficePath : '',
+    });
+    refreshRuntimeCapabilities();
+    res.json({
+      settings,
+      capabilities: getRuntimeCapabilities(),
+      diagnostics: getRuntimeDiagnostics(),
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      error: 'Failed to update runtime settings',
+      message: error?.message || 'Invalid runtime settings payload',
+    });
+  }
+});
+
+function normalizeFileBasename(input: unknown, fallback = 'document'): string {
+  const raw = typeof input === 'string' ? input.trim() : '';
+  if (!raw) return fallback;
+  // Remove separators/control chars that can break header values or paths.
+  const cleaned = raw.replace(/[\\/\r\n\t\0]/g, ' ').replace(/\s+/g, ' ').trim();
+  return cleaned || fallback;
+}
+
+function buildContentDisposition(filenameBase: string, ext: 'docx' | 'pdf'): string {
+  const base = normalizeFileBasename(filenameBase);
+  // ASCII fallback for broad compatibility.
+  const asciiBase = base.replace(/[^\x20-\x7E]/g, '_').replace(/["]/g, '');
+  const safeAscii = (asciiBase || 'document').trim();
+  const utf8Name = `${base}.${ext}`;
+  const asciiName = `${safeAscii}.${ext}`;
+  return `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(utf8Name)}`;
+}
 
 router.post('/convert', async (req, res) => {
   try {
@@ -22,7 +70,7 @@ router.post('/convert', async (req, res) => {
     const ir = parse(markdown, { meta: meta ?? {}, config });
     const buffer = await generateBuffer(ir);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="${meta?.title || 'document'}.docx"`);
+    res.setHeader('Content-Disposition', buildContentDisposition(meta?.title, 'docx'));
     res.send(buffer);
   } catch (error) {
     console.error('Conversion error:', error);
@@ -35,6 +83,13 @@ router.post('/convert', async (req, res) => {
 
 router.post('/preview', async (req, res) => {
   try {
+    const capabilities = getRuntimeCapabilities();
+    if (!capabilities.collabora) {
+      return res.status(503).json({
+        error: 'Collabora unavailable',
+        message: 'Collabora preview is not enabled in this environment.',
+      });
+    }
     const { markdown, config: configInput, meta } = req.body;
     if (!markdown) {
       return res.status(400).json({ error: 'Markdown content is required' });
@@ -77,6 +132,13 @@ router.get('/files/:fileId/download', async (req, res) => {
 
 router.post('/files/:fileId/export/pdf', async (req, res) => {
   try {
+    const capabilities = getRuntimeCapabilities();
+    if (!capabilities.pdfLocal) {
+      return res.status(503).json({
+        error: 'Local PDF unavailable',
+        message: 'Local PDF export is not enabled in this environment.',
+      });
+    }
     const { fileId } = req.params;
     const accessToken = req.query.access_token as string;
     if (!accessToken || !token.validate(accessToken, fileId)) {
@@ -101,6 +163,13 @@ router.post('/files/:fileId/export/pdf', async (req, res) => {
 
 router.post('/convert/pdf', async (req, res) => {
   try {
+    const capabilities = getRuntimeCapabilities();
+    if (!capabilities.pdfLocal) {
+      return res.status(503).json({
+        error: 'Local PDF unavailable',
+        message: 'Local PDF export is not enabled in this environment.',
+      });
+    }
     const { markdown, config: configInput, meta } = req.body;
     if (!markdown) {
       return res.status(400).json({ error: 'Markdown content is required' });
@@ -110,7 +179,7 @@ router.post('/convert/pdf', async (req, res) => {
     const docxBuffer = await generateBuffer(ir);
     const pdfBuffer = await convertToPdf(docxBuffer, 'pdf', undefined);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${meta?.title || 'document'}.pdf"`);
+    res.setHeader('Content-Disposition', buildContentDisposition(meta?.title, 'pdf'));
     res.send(pdfBuffer);
   } catch (error: any) {
     if (error.message && error.message.includes('Could not find soffice binary')) {

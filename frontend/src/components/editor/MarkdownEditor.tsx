@@ -1,16 +1,16 @@
 import React, { useRef, useCallback, useMemo } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { markdown as markdownLang } from '@codemirror/lang-markdown';
-import { keymap } from '@codemirror/view';
-import { EditorView } from '@codemirror/view';
+import { keymap, EditorView } from '@codemirror/view';
 import { useStore } from '../../store/useStore';
 import { EditorToolbar } from './EditorToolbar';
 import { api } from '../../services/api';
 import { showToast } from '../ui/Toast';
-import { ReactCodeMirrorRef } from '@uiw/react-codemirror';
+import { useI18n } from '../../i18n';
 
 export function MarkdownEditor() {
-  const { markdown, setMarkdown, widths, config, meta } = useStore();
+  const { markdown, setMarkdown, widths } = useStore();
+  const { t } = useI18n();
   const cmRef = useRef<ReactCodeMirrorRef>(null);
 
   const handleInsertText = useCallback((before: string, after: string) => {
@@ -58,15 +58,15 @@ export function MarkdownEditor() {
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
-            showToast('Document downloaded!');
+            showToast(t('downloadSuccess'));
           } catch (err) {
-            showToast('Save failed: ' + (err as Error).message, 'error');
+            showToast(`${t('saveFailed')}: ${(err as Error).message}`, 'error');
           }
         })();
         return true;
       },
     },
-  ]), [handleInsertText]);
+  ]), [handleInsertText, t]);
 
   return (
     <div 
@@ -75,7 +75,7 @@ export function MarkdownEditor() {
     >
       <div className="bg-white border-b border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 flex items-center gap-2 shrink-0">
         Markdown
-        <span className="bg-blue-50 text-blue-500 px-2 py-0.5 rounded text-[11px]">Edit</span>
+        <span className="bg-blue-50 text-blue-500 px-2 py-0.5 rounded text-[11px]">{t('edit')}</span>
       </div>
       
       <EditorToolbar onInsertText={handleInsertText} />
@@ -115,10 +115,9 @@ export function MarkdownEditor() {
       </div>
       
       <div className="bg-white border-t border-gray-200 px-3 py-1 text-[11px] text-gray-500 flex justify-between shrink-0">
-        <span>{markdown.length} chars</span>
-        <span>Ctrl+B Bold · Ctrl+I Italic · Ctrl+S Save</span>
+        <span>{markdown.length} {t('chars')}</span>
+        <span>{t('shortcuts')}</span>
       </div>
     </div>
   );
 }
-

@@ -1,3 +1,11 @@
+export interface HtmlStyleTemplate {
+  id: string;
+  nameEn: string;
+  nameZh: string;
+  css: string;
+  builtin?: boolean;
+}
+
 export const htmlTemplates: Record<string, string> = {
   modernDark: `
     .html-creative-preview { font-family: 'Inter', system-ui, sans-serif; background: #121212; color: #e0e0e0; padding: 40px; border-radius: 8px; line-height: 1.8; font-size: 16px; }
@@ -79,6 +87,13 @@ export const htmlTemplates: Record<string, string> = {
     @keyframes glitch { 2%, 64% { transform: translate(2px,0) skew(0deg); } 4%, 60% { transform: translate(-2px,0) skew(0deg); } 62% { transform: translate(0,0) skew(5deg); } }
   `
 };
+
+export const builtinHtmlStyles: HtmlStyleTemplate[] = [
+  { id: 'modernDark', nameEn: 'Modern Dark', nameZh: '现代深色', css: htmlTemplates.modernDark, builtin: true },
+  { id: 'glassmorphism', nameEn: 'Glassmorphism', nameZh: '玻璃拟态', css: htmlTemplates.glassmorphism, builtin: true },
+  { id: 'magazine', nameEn: 'Editorial Magazine', nameZh: '杂志排版', css: htmlTemplates.magazine, builtin: true },
+  { id: 'neonCyber', nameEn: 'Neon Cyber', nameZh: '霓虹赛博', css: htmlTemplates.neonCyber, builtin: true },
+];
 
 export const PRESETS: Record<string, string> = {
   academic: `body-font: SimSun

@@ -6,6 +6,7 @@ import 'dotenv/config';
 import apiRouter from './routes/api.js';
 import wopiRouter from './wopi/index.js';
 import { initDiscovery } from './wopi/discovery.js';
+import { getRuntimeCapabilities, initRuntimeCapabilities } from './core/capabilities.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,11 +25,19 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.get('/capabilities', (_req, res) => {
+  res.json(getRuntimeCapabilities());
+});
+
 app.get('/CONFIG_SPEC.md', (_req, res) => {
   res.sendFile(path.join(__dirname, '../CONFIG_SPEC.md'));
 });
 
-initDiscovery()
+initRuntimeCapabilities()
+  .catch((err) => {
+    console.error('Failed to initialize runtime capabilities:', err.message);
+  })
+  .then(() => initDiscovery())
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Server running at http://localhost:${PORT}`);

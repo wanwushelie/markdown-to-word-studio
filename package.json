@@ -21,6 +21,8 @@
     "cli": "node dist/cli.js",
     "server": "node dist/server.js",
     "compose:up": "docker-compose up --build",
+    "compose:up:local": "docker-compose -f docker-compose.local.yml up --build",
+    "compose:up:server": "docker-compose -f docker-compose.server.yml up --build",
     "compose:down": "docker-compose down -v"
   },
   "keywords": [

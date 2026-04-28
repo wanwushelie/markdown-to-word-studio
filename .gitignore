@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
@@ -48,6 +47,9 @@ temp/
 test.docx
 *.pdf
 screenshot*.png
+
+# Local automation artifacts
+.playwright-mcp/
 
 # Optional: keep fixtures output for reference
 # tests/fixtures/output.docx

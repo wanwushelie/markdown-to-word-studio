@@ -1,8 +1,8 @@
 import type { ResolvedConfig } from '../core/types.js';
-import { StyleForParagraph } from 'docx';
+import type { IParagraphStyleOptions } from 'docx';
 import { ptToHalfPt, ptToTwip } from '../utils/units.js';
 
-export function createStyles(config: ResolvedConfig): StyleForParagraph[] {
+export function createStyles(config: ResolvedConfig): IParagraphStyleOptions[] {
   const headingSizes = [
     config.size.heading1,
     config.size.heading2,
@@ -12,9 +12,9 @@ export function createStyles(config: ResolvedConfig): StyleForParagraph[] {
     config.size.heading6,
   ];
 
-  const headingStyles: StyleForParagraph[] = Array.from({ length: 6 }, (_, i) => {
+  const headingStyles: IParagraphStyleOptions[] = Array.from({ length: 6 }, (_, i) => {
     const level = i + 1;
-    return new StyleForParagraph({
+    return {
       id: `Heading${level}`,
       name: `Heading ${level}`,
       basedOn: 'Normal',
@@ -41,10 +41,10 @@ export function createStyles(config: ResolvedConfig): StyleForParagraph[] {
         },
         outlineLevel: i,
       },
-    });
+    };
   });
 
-  const normalStyle = new StyleForParagraph({
+  const normalStyle: IParagraphStyleOptions = {
     id: 'Normal',
     name: 'Normal',
     run: {
@@ -66,9 +66,9 @@ export function createStyles(config: ResolvedConfig): StyleForParagraph[] {
         after: ptToTwip(config.spacing.paragraphSpacing),
       },
     },
-  });
+  };
 
-  const codeStyle = new StyleForParagraph({
+  const codeStyle: IParagraphStyleOptions = {
     id: 'CodeBlock',
     name: 'Code Block',
     basedOn: 'Normal',
@@ -93,9 +93,9 @@ export function createStyles(config: ResolvedConfig): StyleForParagraph[] {
         fill: config.color.codeBackground,
       },
     },
-  });
+  };
 
-  const quoteStyle = new StyleForParagraph({
+  const quoteStyle: IParagraphStyleOptions = {
     id: 'Quote',
     name: 'Quote',
     basedOn: 'Normal',
@@ -112,7 +112,7 @@ export function createStyles(config: ResolvedConfig): StyleForParagraph[] {
       },
       indent: { left: 720 },
     },
-  });
+  };
 
   return [normalStyle, ...headingStyles, codeStyle, quoteStyle];
 }

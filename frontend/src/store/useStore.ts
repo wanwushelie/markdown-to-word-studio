@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { builtinHtmlStyles, type HtmlStyleTemplate } from '../utils/templates';
 
 export interface Config {
   font: {
@@ -54,6 +55,13 @@ export interface DocumentMeta {
 }
 
 export type PreviewMode = 'markdown' | 'html' | 'local' | 'pdf' | 'collabora';
+export type Language = 'zh-CN' | 'en-US';
+export interface Capabilities {
+  docx: boolean;
+  pdfLocal: boolean;
+  collabora: boolean;
+  localPreview: boolean;
+}
 
 export const defaultConfig: Config = {
   font: {
@@ -103,53 +111,77 @@ export const defaultConfig: Config = {
   orientation: 'portrait',
 };
 
-const defaultMarkdown = `# Markdown to Word
+const defaultMarkdown = `# Markdown 转 Word
 
-This is a **bold** and *italic* text example. You can also use <u>underline</u>.
+这是一个 **粗体** 和 *斜体* 文本示例，也可以使用 <u>下划线</u>。
 
-## Features
+## 功能
 
-- Headings H1-H6
-- **Bold**, *Italic*, <u>Underline</u>
-- Ordered and unordered lists
-- Code blocks and inline \`code\`
-- Tables
-- Images (local or URL)
+- H1-H6 标题
+- **粗体**、*斜体*、<u>下划线</u>
+- 有序列表和无序列表
+- 代码块和行内 \`code\`
+- 表格
+- 图片（本地或 URL）
 
-### Code Example
+### 代码示例
 
 \`\`\`typescript
 function hello(): void {
-  console.log("Hello, World!");
+  console.log("你好，世界！");
 }
 \`\`\`
 
-### Table
+### 表格
 
-| Name | Age | City |
+| 姓名 | 年龄 | 城市 |
 |------|-----|------|
-| Alice | 28 | Beijing |
-| Bob | 32 | Shanghai |
+| Alice | 28 | 北京 |
+| Bob | 32 | 上海 |
 
-> This is a blockquote. It shows how quoted text will appear.
+> 这是一段引用文字，用于展示导出后的引用样式。
 
 ---
 
-Visit [OpenAI](https://openai.com) for more info.
+访问 [OpenAI](https://openai.com) 了解更多信息。
 
-### Ordered List
+### 有序列表
 
-1. First step
-2. Second step
-3. Third step`;
+1. 第一步
+2. 第二步
+3. 第三步`;
+
+const getInitialLanguage = (): Language => {
+  if (typeof window === 'undefined') return 'zh-CN';
+  const stored = window.localStorage.getItem('language');
+  return stored === 'en-US' ? 'en-US' : 'zh-CN';
+};
+
+const getInitialHtmlStyles = (): HtmlStyleTemplate[] => {
+  if (typeof window === 'undefined') return builtinHtmlStyles;
+  try {
+    const raw = window.localStorage.getItem('customHtmlStyles');
+    if (!raw) return builtinHtmlStyles;
+    const parsed = JSON.parse(raw) as HtmlStyleTemplate[];
+    const custom = Array.isArray(parsed)
+      ? parsed.filter((item) => item && item.id && item.nameEn && item.nameZh && item.css).map((item) => ({ ...item, builtin: false }))
+      : [];
+    return [...builtinHtmlStyles, ...custom];
+  } catch {
+    return builtinHtmlStyles;
+  }
+};
 
 interface AppState {
   markdown: string;
   config: Config;
   meta: DocumentMeta;
   previewMode: PreviewMode;
+  language: Language;
   htmlTemplate: string;
+  htmlStyles: HtmlStyleTemplate[];
   autoPreview: boolean;
+  capabilities: Capabilities;
   panels: {
     editor: boolean;
     preview: boolean;
@@ -163,8 +195,12 @@ interface AppState {
   updateConfig: (updates: Partial<Config> | ((prev: Config) => Config)) => void;
   updateMeta: (updates: Partial<DocumentMeta>) => void;
   setPreviewMode: (mode: PreviewMode) => void;
+  setLanguage: (language: Language) => void;
   setHtmlTemplate: (template: string) => void;
+  upsertHtmlStyle: (style: HtmlStyleTemplate) => void;
+  removeHtmlStyle: (id: string) => void;
   setAutoPreview: (auto: boolean) => void;
+  setCapabilities: (capabilities: Capabilities) => void;
   togglePanel: (panel: keyof AppState['panels']) => void;
   setWidths: (widths: Partial<AppState['widths']>) => void;
 }
@@ -173,12 +209,20 @@ export const useStore = create<AppState>((set) => ({
   markdown: defaultMarkdown,
   config: defaultConfig,
   meta: {
-    title: 'My Document',
+    title: '我的文档',
     author: '',
   },
   previewMode: 'markdown',
+  language: getInitialLanguage(),
   htmlTemplate: 'modernDark',
+  htmlStyles: getInitialHtmlStyles(),
   autoPreview: true,
+  capabilities: {
+    docx: true,
+    pdfLocal: false,
+    collabora: false,
+    localPreview: true,
+  },
   panels: {
     editor: true,
     preview: true,
@@ -196,8 +240,45 @@ export const useStore = create<AppState>((set) => ({
   updateMeta: (updates) =>
     set((state) => ({ meta: { ...state.meta, ...updates } })),
   setPreviewMode: (mode) => set({ previewMode: mode }),
+  setLanguage: (language) => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('language', language);
+    }
+    set({ language });
+  },
   setHtmlTemplate: (template) => set({ htmlTemplate: template }),
+  upsertHtmlStyle: (style) =>
+    set((state) => {
+      const normalizedId = style.id.trim();
+      const existingIdx = state.htmlStyles.findIndex((s) => s.id === normalizedId);
+      const nextStyle: HtmlStyleTemplate = {
+        ...style,
+        id: normalizedId,
+      };
+      const next = existingIdx >= 0
+        ? state.htmlStyles.map((s, idx) => (idx === existingIdx ? { ...s, ...nextStyle, builtin: s.builtin ?? false } : s))
+        : [...state.htmlStyles, nextStyle];
+      if (typeof window !== 'undefined') {
+        const customOnly = next.filter((s) => !s.builtin);
+        window.localStorage.setItem('customHtmlStyles', JSON.stringify(customOnly));
+      }
+      return { htmlStyles: next };
+    }),
+  removeHtmlStyle: (id) =>
+    set((state) => {
+      const target = state.htmlStyles.find((s) => s.id === id);
+      if (!target || target.builtin) return {};
+      const next = state.htmlStyles.filter((s) => s.id !== id);
+      const fallback = builtinHtmlStyles[0]?.id || 'modernDark';
+      const nextTemplate = state.htmlTemplate === id ? fallback : state.htmlTemplate;
+      if (typeof window !== 'undefined') {
+        const customOnly = next.filter((s) => !s.builtin);
+        window.localStorage.setItem('customHtmlStyles', JSON.stringify(customOnly));
+      }
+      return { htmlStyles: next, htmlTemplate: nextTemplate };
+    }),
   setAutoPreview: (auto) => set({ autoPreview: auto }),
+  setCapabilities: (capabilities) => set({ capabilities }),
   togglePanel: (panel) =>
     set((state) => ({
       panels: { ...state.panels, [panel]: !state.panels[panel] },

@@ -7,9 +7,10 @@ import { PreviewPanel } from './components/preview/PreviewPanel';
 import { ConfigPanel } from './components/config/ConfigPanel';
 import { ToastContainer } from './components/ui/Toast';
 import { useStore } from './store/useStore';
+import { api } from './services/api';
 
 function App() {
-  const { panels, togglePanel, widths, setWidths } = useStore();
+  const { panels, togglePanel, widths, setWidths, setCapabilities } = useStore();
 
   // Restore widths from localStorage on mount
   useEffect(() => {
@@ -28,6 +29,14 @@ function App() {
     localStorage.setItem('editorWidth', String(widths.editor));
     localStorage.setItem('configWidth', String(widths.config));
   }, [widths]);
+
+  useEffect(() => {
+    api.getCapabilities()
+      .then((caps) => setCapabilities(caps))
+      .catch(() => {
+        setCapabilities({ docx: true, pdfLocal: false, collabora: false, localPreview: true });
+      });
+  }, [setCapabilities]);
 
   // Responsive: auto-hide panels on very small windows
   useEffect(() => {
@@ -64,4 +73,3 @@ function App() {
 }
 
 export default App;
-

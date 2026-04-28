@@ -5,11 +5,22 @@ interface ToastMessage {
   text: string;
   type: 'success' | 'error';
 }
+interface ToastOptions {
+  dedupeMs?: number;
+}
 
 let toastId = 0;
 const listeners: Set<(msg: ToastMessage) => void> = new Set();
+let lastToastSig = '';
+let lastToastAt = 0;
 
-export function showToast(text: string, type: 'success' | 'error' = 'success') {
+export function showToast(text: string, type: 'success' | 'error' = 'success', options?: ToastOptions) {
+  const now = Date.now();
+  const dedupeMs = options?.dedupeMs ?? 0;
+  const sig = `${type}:${text}`;
+  if (dedupeMs > 0 && sig === lastToastSig && now - lastToastAt < dedupeMs) return;
+  lastToastSig = sig;
+  lastToastAt = now;
   const msg: ToastMessage = { id: ++toastId, text, type };
   listeners.forEach(fn => fn(msg));
 }

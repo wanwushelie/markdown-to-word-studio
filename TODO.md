@@ -1,136 +1,41 @@
-# Development TODO / 开发待办
+# TODO
 
-> Priority: 🔴 High | 🟡 Medium | 🟢 Low
->
-> Status: ⬜ Not started | 🔲 In progress | ✅ Done
+Last updated: 2026-04-28
 
----
+## In Progress
 
-## ✅ Completed / 已完成
+- [ ] Decide final UX for refresh button:
+  - hide in realtime modes (`markdown`, `html`), or
+  - keep button and rename to "Regenerate" for generated modes.
 
-### Links (Hyperlinks) / 链接（超链接）
-- ✅ Use `ExternalHyperlink` from docx to make links clickable in Word
-- 使用 docx 的 `ExternalHyperlink` 使链接在 Word 中可点击
-- File: `src/generator/renderers/inline.ts`
+## Next (High Priority)
 
-### List Rendering / 列表渲染
-- ✅ Proper Word numbering for ordered lists (`LevelFormat.DECIMAL`)
-- ✅ Bullet characters for unordered lists (•/◦/▪ three levels)
-- ✅ Nested list indentation levels (3 levels with instance isolation)
-- File: `src/generator/renderers/block.ts`, `src/generator/document-builder.ts`
+- [ ] Add a short "core-only mode" section to UI settings/help (explain disabled capabilities).
+- [ ] Add API error normalization so frontend can show consistent capability-disabled messages.
+- [ ] Add one smoke test for `/capabilities` + gated endpoints:
+  - `/api/preview` returns 503 when `collabora=false`
+  - `/api/convert/pdf` returns 503 when `pdfLocal=false`
 
-### Strikethrough / 删除线
-- ✅ Strikethrough text formatting in docx output (`strike: true`)
-- File: `src/core/types.ts`, `src/parser/transformer.ts`, `src/generator/renderers/inline.ts`
+## Medium Priority
 
-### Preview Without Collabora / 无 Collabora 预览
-- ✅ Local preview via `docx-preview` library (CDN, no Docker needed)
-- 通过 `docx-preview` 库实现本地预览（CDN 加载，不需要 Docker）
-- ✅ PDF preview via LibreOffice (high-fidelity with pagination)
-- 通过 LibreOffice 实现 PDF 预览（高保真，正确分页）
-- ✅ Three-mode preview switcher: Local (Fast) / PDF (Hi-Fi) / Collabora (Edit)
-- 三模式预览切换器：本地（快速）/ PDF（高保真）/ Collabora（编辑）
-- ✅ New API endpoint `POST /api/convert/pdf` for direct PDF export
-- 新增 API 端点 `POST /api/convert/pdf` 支持直接 PDF 导出
-- File: `public/index.html`, `src/routes/api.ts`
+- [ ] Add rate limiting to conversion endpoints.
+- [ ] Add request size/content validation hardening.
+- [ ] Split frontend bundle (current build reports large chunk warning).
+- [ ] Add persistent process docs (`pm2`) for local/server ops.
 
----
+## Backlog
 
-### Auto-Preview on Input / 输入自动预览
-- ✅ Auto-refresh preview when user stops typing (debounced ~1.5s)
-- ✅ Auto-refresh preview when config changes
-- File: `public/index.html`
+- [ ] Account system + server-side template storage (only if product direction confirms this need).
+- [ ] More markdown extensions (footnotes, task lists, math/diagram strategy).
+- [ ] CI pipeline for build + tests on pull requests.
 
-### Enhanced Config Panel / 增强配置面板
-- ✅ Add heading size controls (H1-H6 individual size inputs)
-- ✅ Add color pickers for heading, text, link, code background colors
-- ✅ Add header/footer text configuration
-- ✅ Add page number toggle
-- File: `public/index.html`
+## Done Recently
 
-### HTML Creative Mode & Editor / HTML 创意模式与编辑器
-- ✅ Add pure HTML instant preview mode via markdown-it
-- ✅ Add 4 creative CSS templates (Modern Dark, Glassmorphism, Editorial, Neon Cyber)
-- ✅ Use CodeMirror 5 instead of plain textarea
-- ✅ Add Markdown syntax highlighting
-- ✅ Add keyboard shortcuts (Ctrl+B, Ctrl+I, Ctrl+S)
-- File: `public/index.html`
-
----
-
-## 🔴 Next Up — High Impact / 下一步 — 高影响
-
-### Style Templates / 样式模板
-- ✅ Add preset templates (Academic Paper, Report, Resume, etc.) via Smart Import
-- ✅ Support custom template import/export as JSON/Text (Smart Config Import)
-- File: `public/index.html`, `CONFIG_SPEC.md`
-
-### Enhanced Config Panel / 增强配置面板 (Part 2)
-- ✅ Add English & Code font selection with datalist
-- ✅ Add Text color and independent margin (top/bottom/left/right) inputs
-- ✅ Add paragraph and heading spacing controls
-- File: `public/index.html`, `src/generator/styles.ts`
-
----
-
-## 🟡 Medium Priority / 中等优先级
-
-### Chinese Typography / 中文排版
-- ⬜ Auto-detect Chinese/English text and apply different fonts per segment
-- 自动检测中英文文本并按段落应用不同字体
-- ⬜ Support font fallback chains (e.g. SimSun → Microsoft YaHei → Arial)
-- 支持字体后备链（如 SimSun → Microsoft YaHei → Arial）
-
-### TOC (Table of Contents) / 目录
-- ⬜ Generate Word Table of Contents from headings
-- 从标题生成 Word 目录
-
-### UI Polish / UI 优化
-- ⬜ Add dark mode support
-- 添加深色模式支持
-- ⬜ Add loading spinner/progress bar during conversion
-- 转换期间添加加载动画/进度条
-- ⬜ Improve mobile responsiveness
-- 改善移动端响应式
-
----
-
-## 🟢 Extended Markdown Support / 扩展 Markdown 支持
-
-- ⬜ Task lists (checkboxes) `- [ ] task`
-- ⬜ Footnotes / 脚注
-- ⬜ Definition lists / 定义列表
-- ⬜ Math equations (KaTeX/MathJax → image) / 数学公式
-- ⬜ Mermaid diagrams → image / Mermaid 图表
-- ⬜ Syntax highlighting in code blocks (colored text runs) / 代码块语法高亮
-- ⬜ Emoji support / Emoji 支持
-
----
-
-## 🟢 Testing / 测试
-
-- ⬜ Add generator unit tests (block renderer, inline renderer)
-- 添加生成器单元测试（块渲染器、行内渲染器）
-- ⬜ Add API integration tests
-- 添加 API 集成测试
-- ⬜ Add visual regression tests for generated documents
-- 添加生成文档的视觉回归测试
-- ⬜ Create more fixture markdown files for edge cases
-- 为边界情况创建更多夹具 Markdown 文件
-
----
-
-## 🟢 DevOps & Infrastructure / 开发运维和基础设施
-
-- ⬜ Add ESLint + Prettier configuration
-- 添加 ESLint + Prettier 配置
-- ⬜ Add GitHub Actions CI/CD pipeline
-- 添加 GitHub Actions CI/CD 流水线
-- ⬜ Add production build optimization
-- 添加生产构建优化
-- ⬜ Add rate limiting to API endpoints
-- 添加 API 端点速率限制
-- ⬜ Add request validation middleware
-- 添加请求验证中间件
-- ⬜ Consider migrating frontend to Vite + React/Vue
-- 考虑将前端迁移到 Vite + React/Vue
+- [x] Runtime capability system (`docx`, `pdfLocal`, `collabora`, `localPreview`).
+- [x] `GET /capabilities` endpoint.
+- [x] Frontend capability-aware mode/options rendering.
+- [x] Added `docker-compose.local.yml` and `docker-compose.server.yml`.
+- [x] Added `.env.production.example` and `deploy/nginx.conf`.
+- [x] Verified realtime updates in `markdown` and `html` preview modes.
+- [x] Fixed local docx preview residue when switching preview modes.
+- [x] Added bilingual Markdown guide and in-app modal entry from editor toolbar.

@@ -1,0 +1,32 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - PUBLIC_APP_URL=${PUBLIC_APP_URL:-http://localhost:3000}
+      - WOPI_SECRET=${WOPI_SECRET}
+      - TEMP_DIR=/app/tmp
+      - ENABLE_LOCAL_PDF=false
+      - ENABLE_COLLABORA=${ENABLE_COLLABORA:-false}
+      - CODE_URL=${CODE_URL:-http://collabora:9980}
+    volumes:
+      - app_tmp:/app/tmp
+    depends_on:
+      - collabora
+
+  collabora:
+    image: collabora/code:latest
+    ports:
+      - "9980:9980"
+    environment:
+      - domain=${COLLABORA_DOMAIN:-localhost}
+      - username=${CODE_ADMIN_USER:-admin}
+      - password=${CODE_ADMIN_PASS:-secret}
+      - extra_params=--o:ssl.enable=false
+    cap_add:
+      - MKNOD
+
+volumes:
+  app_tmp:

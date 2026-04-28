@@ -1,4 +1,4 @@
-import { Config, DocumentMeta } from '../store/useStore';
+import { Capabilities, Config, DocumentMeta } from '../store/useStore';
 
 const API_BASE = '/api';
 
@@ -6,6 +6,27 @@ export interface ConvertPayload {
   markdown: string;
   config: Config;
   meta: DocumentMeta;
+}
+
+export interface RuntimeSettings {
+  libreOfficePath: string;
+}
+export interface RuntimeDiagnostics {
+  libreOffice: {
+    detected: boolean;
+    source: 'custom' | 'env' | 'auto';
+    configuredCommand: string;
+    resolvedPath: string;
+  };
+  collabora: {
+    detected: boolean;
+    source: 'auto';
+    url: string;
+  };
+  localPreview: {
+    detected: boolean;
+    source: 'builtin';
+  };
 }
 
 function hexToDocx(hex: string): string {
@@ -29,6 +50,31 @@ function preparePayload(payload: ConvertPayload): ConvertPayload {
 }
 
 export const api = {
+  async getRuntimeSettings(): Promise<{ settings: RuntimeSettings; capabilities: Capabilities; diagnostics: RuntimeDiagnostics }> {
+    const response = await fetch(`${API_BASE}/runtime/settings`);
+    if (!response.ok) throw new Error('Failed to fetch runtime settings');
+    return response.json();
+  },
+
+  async updateRuntimeSettings(payload: Partial<RuntimeSettings>): Promise<{ settings: RuntimeSettings; capabilities: Capabilities; diagnostics: RuntimeDiagnostics }> {
+    const response = await fetch(`${API_BASE}/runtime/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Failed to update runtime settings' }));
+      throw new Error(error.message || 'Failed to update runtime settings');
+    }
+    return response.json();
+  },
+
+  async getCapabilities(): Promise<Capabilities> {
+    const response = await fetch('/capabilities');
+    if (!response.ok) throw new Error('Failed to fetch capabilities');
+    return response.json();
+  },
+
   async convertToDocx(payload: ConvertPayload): Promise<Blob> {
     const response = await fetch(`${API_BASE}/convert`, {
       method: 'POST',

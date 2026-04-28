@@ -3,6 +3,7 @@ import { XMLParser } from 'fast-xml-parser';
 const CODE_URL = process.env.CODE_URL || 'http://localhost:9980';
 
 let cachedUrlSrc: string | null = null;
+let discoveryReady = false;
 
 async function fetchDiscovery(): Promise<string> {
   const res = await fetch(`${CODE_URL}/hosting/discovery`);
@@ -36,10 +37,12 @@ function parseDiscovery(xml: string): string {
 }
 
 export async function initDiscovery(retries = 5, delay = 3000): Promise<void> {
+  discoveryReady = false;
   for (let i = 0; i < retries; i++) {
     try {
       const xml = await fetchDiscovery();
       cachedUrlSrc = parseDiscovery(xml);
+      discoveryReady = true;
       return;
     } catch (err) {
       if (i === retries - 1) throw err;
@@ -54,4 +57,8 @@ export function getEditUrlSrc(): string {
     throw new Error('Discovery not initialized');
   }
   return cachedUrlSrc;
+}
+
+export function isDiscoveryReady(): boolean {
+  return discoveryReady;
 }
