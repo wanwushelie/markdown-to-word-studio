@@ -27,13 +27,14 @@ export async function renderImage(
       right: AlignmentType.RIGHT,
     };
 
+    const imageType = meta.extension === 'jpeg' ? 'jpg' : meta.extension;
     const imageRun = new ImageRun({
       data: meta.buffer,
       transformation: {
         width: Math.round(width),
         height: Math.round(height),
       },
-      type: meta.extension as 'png' | 'jpg' | 'jpeg' | 'gif' | 'bmp',
+      type: imageType as 'png' | 'jpg' | 'gif' | 'bmp',
     });
 
     return new Paragraph({
@@ -49,7 +50,7 @@ export async function renderImage(
     return new Paragraph({
       children: [
         new ImageRun({
-          data: Buffer.from([]),
+          data: new Uint8Array(),
           transformation: { width: 1, height: 1 },
           type: 'png',
         }),
