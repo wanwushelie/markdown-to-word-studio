@@ -2,17 +2,31 @@
 
 <cite>
 **本文档中引用的文件**
+- [HtmlStyleImport.tsx](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx)
+- [templates.ts](file://frontend-pages/src/utils/templates.ts)
+- [useStore.ts](file://frontend-pages/src/store/useStore.ts)
+- [PreviewPanel.tsx](file://frontend-pages/src/components/preview/PreviewPanel.tsx)
+- [HTML_STYLE_SPEC.md](file://frontend-pages/public/HTML_STYLE_SPEC.md)
+- [App.tsx](file://frontend-pages/src/App.tsx)
+- [main.tsx](file://frontend-pages/src/main.tsx)
 - [HtmlStyleImport.tsx](file://frontend/src/components/preview/HtmlStyleImport.tsx)
 - [templates.ts](file://frontend/src/utils/templates.ts)
 - [useStore.ts](file://frontend/src/store/useStore.ts)
 - [PreviewPanel.tsx](file://frontend/src/components/preview/PreviewPanel.tsx)
 - [HTML_STYLE_SPEC.md](file://frontend/public/HTML_STYLE_SPEC.md)
-- [HTML_STYLE_SPEC.md](file://public/HTML_STYLE_SPEC.md)
 - [i18n.ts](file://frontend/src/i18n.ts)
 - [api.ts](file://src/routes/api.ts)
 - [styles.ts](file://src/generator/styles.ts)
 - [types.ts](file://src/core/types.ts)
 </cite>
+
+## 更新摘要
+**变更内容**
+- 新增frontend-pages分支的HtmlStyleImport.tsx组件分析
+- 扩展样式模板管理系统的对比分析
+- 增加frontend-pages与frontend版本的差异说明
+- 完善样式规范文件的跨版本对比
+- 更新项目结构图以反映双分支架构
 
 ## 目录
 1. [简介](#简介)
@@ -35,6 +49,8 @@ HTML样式导入系统是Markdown转Word工具中的一个关键功能模块，�
 - 样式规范的AI辅助生成
 - 实时样式预览和应用
 - 样式数据的持久化存储
+
+**更新** 新增frontend-pages分支的样式导入系统支持，提供更丰富的样式模板和自定义样式管理功能。
 
 ## 项目结构
 
@@ -63,20 +79,26 @@ N[转换服务]
 O[PDF导出]
 P[WOPIServer]
 end
+subgraph "双分支架构"
+Q[frontend 分支]
+R[frontend-pages 分支]
+Q --> A
+R --> A
+end
 K --> A
 A --> E
 E --> N
 ```
 
 **图表来源**
-- [HtmlStyleImport.tsx:1-229](file://frontend/src/components/preview/HtmlStyleImport.tsx#L1-L229)
-- [PreviewPanel.tsx:1-271](file://frontend/src/components/preview/PreviewPanel.tsx#L1-L271)
-- [templates.ts:1-181](file://frontend/src/utils/templates.ts#L1-L181)
+- [HtmlStyleImport.tsx:1-229](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx#L1-L229)
+- [PreviewPanel.tsx:1-316](file://frontend-pages/src/components/preview/PreviewPanel.tsx#L1-L316)
+- [templates.ts:1-181](file://frontend-pages/src/utils/templates.ts#L1-L181)
 
 **章节来源**
-- [HtmlStyleImport.tsx:1-229](file://frontend/src/components/preview/HtmlStyleImport.tsx#L1-L229)
-- [PreviewPanel.tsx:1-271](file://frontend/src/components/preview/PreviewPanel.tsx#L1-L271)
-- [templates.ts:1-181](file://frontend/src/utils/templates.ts#L1-L181)
+- [HtmlStyleImport.tsx:1-229](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx#L1-L229)
+- [PreviewPanel.tsx:1-316](file://frontend-pages/src/components/preview/PreviewPanel.tsx#L1-L316)
+- [templates.ts:1-181](file://frontend-pages/src/utils/templates.ts#L1-L181)
 
 ## 核心组件
 
@@ -130,8 +152,8 @@ HtmlStyleImport --> ZustandStore : "使用状态管理"
 ```
 
 **图表来源**
-- [HtmlStyleImport.tsx:10-41](file://frontend/src/components/preview/HtmlStyleImport.tsx#L10-L41)
-- [useStore.ts:175-291](file://frontend/src/store/useStore.ts#L175-L291)
+- [HtmlStyleImport.tsx:10-41](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx#L10-L41)
+- [useStore.ts:175-291](file://frontend-pages/src/store/useStore.ts#L175-L291)
 
 ### 样式模板管理系统
 
@@ -174,13 +196,13 @@ TemplatesManager --> StorageManager : "管理持久化"
 ```
 
 **图表来源**
-- [templates.ts:1-181](file://frontend/src/utils/templates.ts#L1-L181)
-- [useStore.ts:160-173](file://frontend/src/store/useStore.ts#L160-L173)
+- [templates.ts:1-181](file://frontend-pages/src/utils/templates.ts#L1-L181)
+- [useStore.ts:160-173](file://frontend-pages/src/store/useStore.ts#L160-L173)
 
 **章节来源**
-- [HtmlStyleImport.tsx:43-229](file://frontend/src/components/preview/HtmlStyleImport.tsx#L43-L229)
-- [templates.ts:1-181](file://frontend/src/utils/templates.ts#L1-L181)
-- [useStore.ts:160-291](file://frontend/src/store/useStore.ts#L160-L291)
+- [HtmlStyleImport.tsx:43-229](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx#L43-L229)
+- [templates.ts:1-181](file://frontend-pages/src/utils/templates.ts#L1-L181)
+- [useStore.ts:160-291](file://frontend-pages/src/store/useStore.ts#L160-L291)
 
 ## 架构概览
 
@@ -224,9 +246,9 @@ G --> M
 ```
 
 **图表来源**
-- [HtmlStyleImport.tsx:1-229](file://frontend/src/components/preview/HtmlStyleImport.tsx#L1-L229)
-- [PreviewPanel.tsx:1-271](file://frontend/src/components/preview/PreviewPanel.tsx#L1-L271)
-- [useStore.ts:1-291](file://frontend/src/store/useStore.ts#L1-L291)
+- [HtmlStyleImport.tsx:1-229](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx#L1-L229)
+- [PreviewPanel.tsx:1-316](file://frontend-pages/src/components/preview/PreviewPanel.tsx#L1-L316)
+- [useStore.ts:1-291](file://frontend-pages/src/store/useStore.ts#L1-L291)
 
 系统的核心流程包括：
 
@@ -258,7 +280,7 @@ ThrowError --> Error([返回错误状态])
 ```
 
 **图表来源**
-- [HtmlStyleImport.tsx:10-41](file://frontend/src/components/preview/HtmlStyleImport.tsx#L10-L41)
+- [HtmlStyleImport.tsx:10-41](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx#L10-L41)
 
 **解析器特性：**
 - **双格式支持**：同时支持JSON和文本两种格式
@@ -288,8 +310,8 @@ Note over HSI,DOM : 实时预览更新
 ```
 
 **图表来源**
-- [PreviewPanel.tsx:155-180](file://frontend/src/components/preview/PreviewPanel.tsx#L155-L180)
-- [HtmlStyleImport.tsx:86-95](file://frontend/src/components/preview/HtmlStyleImport.tsx#L86-L95)
+- [PreviewPanel.tsx:155-180](file://frontend-pages/src/components/preview/PreviewPanel.tsx#L155-L180)
+- [HtmlStyleImport.tsx:86-95](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx#L86-L95)
 
 ### 状态管理集成
 
@@ -331,7 +353,7 @@ StoreActions --> HtmlStyleTemplate : "操作"
 ```
 
 **图表来源**
-- [useStore.ts:175-291](file://frontend/src/store/useStore.ts#L175-L291)
+- [useStore.ts:175-291](file://frontend-pages/src/store/useStore.ts#L175-L291)
 
 **状态管理特性：**
 - **响应式更新**：状态变化自动触发UI更新
@@ -340,9 +362,9 @@ StoreActions --> HtmlStyleTemplate : "操作"
 - **类型安全**：完整的TypeScript类型定义
 
 **章节来源**
-- [HtmlStyleImport.tsx:10-95](file://frontend/src/components/preview/HtmlStyleImport.tsx#L10-L95)
-- [PreviewPanel.tsx:155-180](file://frontend/src/components/preview/PreviewPanel.tsx#L155-L180)
-- [useStore.ts:175-291](file://frontend/src/store/useStore.ts#L175-L291)
+- [HtmlStyleImport.tsx:10-95](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx#L10-L95)
+- [PreviewPanel.tsx:155-180](file://frontend-pages/src/components/preview/PreviewPanel.tsx#L155-L180)
+- [useStore.ts:175-291](file://frontend-pages/src/store/useStore.ts#L175-L291)
 
 ## 依赖关系分析
 
@@ -385,8 +407,8 @@ J --> L
 ```
 
 **图表来源**
-- [HtmlStyleImport.tsx:1-5](file://frontend/src/components/preview/HtmlStyleImport.tsx#L1-L5)
-- [useStore.ts:1-2](file://frontend/src/store/useStore.ts#L1-L2)
+- [HtmlStyleImport.tsx:1-5](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx#L1-L5)
+- [useStore.ts:1-2](file://frontend-pages/src/store/useStore.ts#L1-L2)
 - [i18n.ts:12-23](file://frontend/src/i18n.ts#L12-L23)
 - [api.ts:1-12](file://src/routes/api.ts#L1-L12)
 
@@ -397,8 +419,8 @@ J --> L
 - **异步处理**：合理使用Promise和async/await处理异步操作
 
 **章节来源**
-- [HtmlStyleImport.tsx:1-229](file://frontend/src/components/preview/HtmlStyleImport.tsx#L1-L229)
-- [useStore.ts:1-291](file://frontend/src/store/useStore.ts#L1-L291)
+- [HtmlStyleImport.tsx:1-229](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx#L1-L229)
+- [useStore.ts:1-291](file://frontend-pages/src/store/useStore.ts#L1-L291)
 - [i18n.ts:1-251](file://frontend/src/i18n.ts#L1-L251)
 - [api.ts:1-196](file://src/routes/api.ts#L1-L196)
 
@@ -474,8 +496,8 @@ HTML样式导入系统在设计时充分考虑了性能优化，确保在各种�
 - 记录用户交互行为以便问题定位
 
 **章节来源**
-- [HtmlStyleImport.tsx:86-95](file://frontend/src/components/preview/HtmlStyleImport.tsx#L86-L95)
-- [useStore.ts:267-279](file://frontend/src/store/useStore.ts#L267-L279)
+- [HtmlStyleImport.tsx:86-95](file://frontend-pages/src/components/preview/HtmlStyleImport.tsx#L86-L95)
+- [useStore.ts:267-279](file://frontend-pages/src/store/useStore.ts#L267-L279)
 - [i18n.ts:237-250](file://frontend/src/i18n.ts#L237-L250)
 
 ## 结论
@@ -493,5 +515,7 @@ HTML样式导入系统是一个设计精良、功能完善的样式管理解决�
 - 响应式的状态管理模式
 - 完整的国际化支持
 - 严格的类型安全保证
+
+**更新** 前端页面分支的样式导入系统提供了更丰富的样式模板和自定义管理功能，增强了系统的实用性和灵活性。
 
 该系统不仅满足了当前的功能需求，还为未来的功能扩展奠定了坚实的基础。通过持续的优化和完善，HTML样式导入系统将成为Markdown转Word工具的重要特色功能。

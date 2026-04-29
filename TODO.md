@@ -4,23 +4,17 @@ Last updated: 2026-04-28
 
 ## In Progress
 
-- [ ] Decide final UX for refresh button:
-  - hide in realtime modes (`markdown`, `html`), or
-  - keep button and rename to "Regenerate" for generated modes.
+- [ ] Extend provider/resolver-style capability organization beyond `.docx` if future complexity makes it worthwhile.
 
 ## Next (High Priority)
 
-- [ ] Add a short "core-only mode" section to UI settings/help (explain disabled capabilities).
-- [ ] Add API error normalization so frontend can show consistent capability-disabled messages.
-- [ ] Add one smoke test for `/capabilities` + gated endpoints:
-  - `/api/preview` returns 503 when `collabora=false`
-  - `/api/convert/pdf` returns 503 when `pdfLocal=false`
+- [ ] Review whether runtime success toasts should also be fully localized.
 
 ## Medium Priority
 
 - [ ] Add rate limiting to conversion endpoints.
 - [ ] Add request size/content validation hardening.
-- [ ] Split frontend bundle (current build reports large chunk warning).
+- [ ] Further split the `MarkdownEditor` chunk if startup weight becomes a product concern.
 - [ ] Add persistent process docs (`pm2`) for local/server ops.
 
 ## Backlog
@@ -39,3 +33,8 @@ Last updated: 2026-04-28
 - [x] Verified realtime updates in `markdown` and `html` preview modes.
 - [x] Fixed local docx preview residue when switching preview modes.
 - [x] Added bilingual Markdown guide and in-app modal entry from editor toolbar.
+- [x] Finalized refresh UX by hiding refresh in realtime modes and using `Regenerate` for generated modes.
+- [x] Added a core-only mode explanation for disabled advanced capabilities.
+- [x] Normalized capability-disabled/API errors in the frontend service layer.
+- [x] Added smoke coverage for `/capabilities`, `/api/preview`, and `/api/convert/pdf` gating behavior.
+- [x] Split the frontend bundle with lazy-loaded panels and dynamic `docx-preview` import.

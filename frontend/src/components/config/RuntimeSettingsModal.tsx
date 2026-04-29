@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, RuntimeDiagnostics } from '../../services/api';
+import { getUserFacingErrorMessage } from '../../services/capabilities/errors';
 import { useStore } from '../../store/useStore';
 import { showToast } from '../ui/Toast';
 
@@ -23,9 +24,9 @@ export function RuntimeSettingsModal({ open, onClose }: RuntimeSettingsModalProp
         setCapabilities(res.capabilities);
         setDiagnostics(res.diagnostics);
       })
-      .catch((err) => showToast((err as Error).message, 'error'))
+      .catch((err) => showToast(getUserFacingErrorMessage(err, language), 'error'))
       .finally(() => setLoading(false));
-  }, [open, setCapabilities]);
+  }, [language, open, setCapabilities]);
 
   const save = async () => {
     setLoading(true);
@@ -35,7 +36,7 @@ export function RuntimeSettingsModal({ open, onClose }: RuntimeSettingsModalProp
       setDiagnostics(res.diagnostics);
       showToast('Runtime settings updated');
     } catch (err) {
-      showToast((err as Error).message, 'error');
+      showToast(getUserFacingErrorMessage(err, language), 'error');
     } finally {
       setLoading(false);
     }
@@ -50,7 +51,7 @@ export function RuntimeSettingsModal({ open, onClose }: RuntimeSettingsModalProp
       setDiagnostics(res.diagnostics);
       showToast('Auto-detection refreshed');
     } catch (err) {
-      showToast((err as Error).message, 'error');
+      showToast(getUserFacingErrorMessage(err, language), 'error');
     } finally {
       setLoading(false);
     }

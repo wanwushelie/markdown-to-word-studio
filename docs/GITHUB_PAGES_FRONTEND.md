@@ -1,6 +1,6 @@
-# GitHub Pages Pure Frontend Deployment
+# GitHub Pages Browser-Public Deployment
 
-This repository contains a browser-only frontend in `frontend-pages`.
+This repository now builds the GitHub Pages version from the canonical frontend in `frontend/`.
 
 ## What Runs On GitHub Pages
 
@@ -12,22 +12,23 @@ This repository contains a browser-only frontend in `frontend-pages`.
 ## Local Development
 
 ```bash
-cd frontend-pages
-npm install
+cd frontend
 npm run dev
 ```
+
+For the actual GitHub Pages target, use the browser-public build command shown below.
 
 ## Local Build
 
 ```bash
-cd frontend-pages
-npm run build
+cd frontend
+npm run build:browser-public
 ```
 
 The output is written to:
 
 ```text
-frontend-pages/dist
+frontend/dist
 ```
 
 ## GitHub Pages Automation
@@ -42,4 +43,12 @@ In GitHub repository settings:
 
 ## Feature Boundary
 
-The pure frontend version supports `.docx` export. PDF export and Collabora preview remain server-only features because they require LibreOffice and WOPI endpoints.
+The browser-public version supports `.docx` export, HTML preview, and fast Word preview. PDF export and Collabora preview remain server-only features because they require LibreOffice and WOPI endpoints.
+
+## Current Status
+
+The GitHub Pages path has been fully consolidated into `frontend/`.
+
+- there is no separate `frontend-pages/` app anymore
+- all active frontend work belongs in `frontend/`
+- the Pages workflow builds `frontend/` directly

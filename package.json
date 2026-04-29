@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build:frontend": "cd frontend && npm run build",
-    "build:pages": "cd frontend-pages && npm run build",
+    "build:pages": "cd frontend && npm run build:browser-public",
     "build": "tsup src/index.ts src/cli.ts src/server.ts --format esm --dts && npm run build:frontend",
     "dev:backend": "tsup src/index.ts src/cli.ts src/server.ts --format esm --dts --watch",
     "dev:server": "node dist/server.js",

@@ -35,7 +35,7 @@ It also had a natural limitation:
 
 ### Stage 2: Pure frontend public deployment path
 
-To support free public deployment, a second frontend was added in `frontend-pages/`.
+To support free public deployment, a second frontend was temporarily added under a separate `frontend-pages/` directory.
 
 The idea was:
 
@@ -205,13 +205,13 @@ The next step should be "merge toward one frontend with multiple runtime adapter
 ### Good decisions already made
 
 - Keeping core conversion logic shared in `src/`
-- Proving browser-only conversion with `frontend-pages/`
+- Proving browser-only conversion with the temporary `frontend-pages/` app
 - Preserving server-only advanced capabilities instead of deleting them
 - Using capability-based thinking for optional features
 
 ### Decisions that are acceptable short-term but weak long-term
 
-- Maintaining `frontend/` and `frontend-pages/` as separate product frontends
+- Maintaining `frontend/` and the temporary `frontend-pages/` app as separate product frontends
 - Letting similar UI behavior exist in two places
 - Treating deployment mode as if it requires a separate app
 
@@ -224,6 +224,12 @@ Adopt a unified product frontend and move environment differences into adapters 
 The project began correctly as a server-first conversion system.
 Adding a pure frontend path was also the right move for public free deployment.
 The current split frontend state is a useful transition, not a final architecture.
+
+Current status after the unification pass:
+
+- `frontend/` is now the canonical frontend.
+- `frontend/` can build both the server-backed target and the browser-public GitHub Pages target.
+- The former `frontend-pages/` implementation has been folded back into `frontend/` and removed.
 
 The long-term architecture should be:
 

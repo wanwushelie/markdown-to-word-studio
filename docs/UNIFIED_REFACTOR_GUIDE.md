@@ -31,6 +31,20 @@ packages/
 This structure does not need to be created in one step.
 The refactor can be phased.
 
+## Current Status
+
+The project is already in the middle of this refactor, not at the beginning anymore.
+
+What is already true now:
+
+- `frontend/` is the canonical frontend
+- GitHub Pages builds now come from `frontend/`
+- browser-public and server builds share the same frontend app
+- `.docx` capability in `frontend/` already uses the provider/resolver shape
+- the former `frontend-pages/` implementation has already been folded back into `frontend/`
+
+That means the remaining work is mostly cleanup, capability expansion, and final removal of duplicated artifacts.
+
 ## Design Rule
 
 The frontend must not know whether it is running in public browser mode or full server mode by branching all over the UI.
@@ -213,12 +227,12 @@ This keeps behavior understandable and avoids hidden double work.
 
 ### Goal
 
-Collapse `frontend/` and `frontend-pages/` into one main frontend app.
+Preserve the now-unified frontend architecture and avoid reintroducing a second app.
 
 ### Work
 
 - Choose one canonical frontend directory as the long-term home.
-- Recommended choice: keep `frontend/` as the canonical shared app and remove the need for a second full UI tree.
+- Current choice already made: keep `frontend/` as the canonical shared app and remove the need for a second full UI tree.
 - Move browser-only public deployment concerns into build configuration and adapter selection, not into a separate duplicated app.
 
 ### Implementation approach
@@ -338,9 +352,6 @@ If a full monorepo move feels too disruptive now, keep the repository mostly as-
 ```text
 frontend/                canonical frontend
 src/                     shared conversion core and current server code
-frontend-adapters/
-  browser.ts
-  server-api.ts
 ```
 
 ### Long-term preferred structure
@@ -372,6 +383,13 @@ Execute in this order:
 9. Add optional user override settings for multi-provider capabilities.
 10. Update docs and release instructions.
 
+Current progress against that order:
+
+- Steps 1 through 5 are effectively done
+- Step 6 is partially done
+- Step 7 is complete
+- Steps 8 through 10 are ongoing as normal maintenance
+
 This order reduces risk because the behavior boundary becomes stable before file consolidation.
 
 ## Current Code Mapping Recommendation
@@ -379,8 +397,8 @@ This order reduces risk because the behavior boundary becomes stable before file
 Recommended mapping from the current repository:
 
 - Shared conversion logic remains based on `src/parser`, `src/generator`, and config/types modules.
-- Current `frontend` should become the canonical long-term app because it already contains the fuller component structure.
-- `frontend-pages` should be treated as a temporary proving ground, then folded back into the canonical app.
+- Current `frontend` is the canonical long-term app.
+- the former `frontend-pages` proving ground has now been folded back into the canonical app
 - The current local browser `api.ts` concept should become the browser `.docx`/preview provider, not remain a second frontend identity.
 - The current server fetch service should become the server provider.
 - Resolver logic should sit above both and remain independent of the UI tree.
@@ -435,9 +453,14 @@ The refactor should be considered complete when:
 - PDF and Collabora remain available only where supported
 - duplicate frontend trees are no longer needed
 
+Practical near-term done condition:
+
+- hand-written project docs reference `frontend/` as the only real frontend
+- no duplicate frontend tree is maintained in the repository
+
 ## Final Recommendation
 
-Do not keep growing `frontend` and `frontend-pages` side by side.
+Do not reintroduce a second product frontend beside `frontend/`.
 
 Use the current pure frontend work as proof that the browser adapter is viable, then fold that capability back into a unified frontend architecture.
 

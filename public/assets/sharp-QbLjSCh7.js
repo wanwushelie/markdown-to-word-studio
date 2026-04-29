@@ -1,0 +1,1 @@
+function e(){throw Error(`Local image metadata requires the server version.`)}export{e as default};

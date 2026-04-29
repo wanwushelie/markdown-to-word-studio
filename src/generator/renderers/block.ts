@@ -4,11 +4,8 @@ import {
   Table,
   TableRow,
   TableCell,
-  TableBorders,
   BorderStyle,
-  AlignmentType,
   HeadingLevel,
-  type IRunOptions,
 } from 'docx';
 import type {
   BlockNode,
@@ -65,7 +62,7 @@ export async function renderBlock(
 }
 
 function renderHeading(node: HeadingNode, config: ResolvedConfig): Paragraph {
-  const headingLevels: Record<number, HeadingLevel> = {
+  const headingLevels: Record<number, (typeof HeadingLevel)[keyof typeof HeadingLevel]> = {
     1: HeadingLevel.HEADING_1,
     2: HeadingLevel.HEADING_2,
     3: HeadingLevel.HEADING_3,
@@ -151,7 +148,7 @@ function renderBlockquote(node: BlockquoteNode, config: ResolvedConfig): Paragra
           children: renderInline(child.children, config, {
             italics: true,
             color: '666666',
-          } as IRunOptions),
+          }),
           spacing: {
             before: ptToTwip(config.spacing.paragraphSpacing),
             after: ptToTwip(config.spacing.paragraphSpacing),
@@ -244,7 +241,14 @@ function renderTable(node: TableNode, config: ResolvedConfig): Table {
 
   return new Table({
     rows,
-    borders: TableBorders.ALL,
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+      left: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+      right: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+      insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+    },
     width: { size: 100, type: 'pct' },
   });
 }

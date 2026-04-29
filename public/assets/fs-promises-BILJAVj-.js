@@ -1,0 +1,1 @@
+async function e(){throw Error(`Local file paths are not available in the browser.`)}export{e as readFile};

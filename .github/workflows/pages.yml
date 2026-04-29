@@ -29,13 +29,13 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
-      - name: Install Pages frontend dependencies
-        run: npm install
-        working-directory: frontend-pages
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
 
       - name: Build Pages frontend
-        run: npm run build
-        working-directory: frontend-pages
+        run: npm run build:browser-public
+        working-directory: frontend
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -43,7 +43,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: frontend-pages/dist
+          path: frontend/dist
 
   deploy:
     environment:

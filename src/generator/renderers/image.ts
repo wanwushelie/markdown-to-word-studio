@@ -21,7 +21,7 @@ export async function renderImage(
     );
 
     const align = node.align ?? config.image.defaultAlign;
-    const alignmentMap: Record<string, AlignmentType> = {
+    const alignmentMap: Record<string, (typeof AlignmentType)[keyof typeof AlignmentType]> = {
       left: AlignmentType.LEFT,
       center: AlignmentType.CENTER,
       right: AlignmentType.RIGHT,

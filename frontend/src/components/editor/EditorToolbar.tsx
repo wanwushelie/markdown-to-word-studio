@@ -12,6 +12,7 @@ export function EditorToolbar({ onInsertText }: EditorToolbarProps) {
   const { markdown, config, meta } = useStore();
   const { t, language } = useI18n();
   const [showGuide, setShowGuide] = React.useState(false);
+  const uploadInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const handleDownload = async () => {
     try {
@@ -47,6 +48,27 @@ export function EditorToolbar({ onInsertText }: EditorToolbarProps) {
     { label: t('table'), title: t('table'), action: () => onInsertText('| A | B |\\n|---|---|\\n| 1 | 2 |', '') },
   ];
 
+  const handleInsertImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error || new Error('Failed to read image'));
+        reader.readAsDataURL(file);
+      });
+      const safeName = file.name.replace(/[\\[\]]/g, '').trim() || 'image';
+      onInsertText(`![${safeName}](${dataUrl})`, '');
+      showToast(language === 'zh-CN' ? '图片已嵌入到 Markdown' : 'Image inserted as embedded data URL');
+    } catch (error) {
+      showToast((error as Error).message, 'error');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
   return (
     <>
       <div className="bg-white border-b border-gray-200 px-2.5 py-1.5 flex gap-1 flex-wrap shrink-0">
@@ -61,6 +83,20 @@ export function EditorToolbar({ onInsertText }: EditorToolbarProps) {
           </button>
         ))}
         <div className="flex-1" />
+        <button
+          onClick={() => uploadInputRef.current?.click()}
+          className="px-2 py-1 border border-gray-200 bg-white rounded text-xs hover:bg-gray-100"
+          title={language === 'zh-CN' ? '上传图片并嵌入到 Markdown' : 'Upload image and embed into Markdown'}
+        >
+          {language === 'zh-CN' ? '图片' : 'Image'}
+        </button>
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleInsertImage}
+        />
         <button
           onClick={openGuide}
           className="px-2 py-1 border border-gray-200 bg-white rounded text-xs hover:bg-gray-100"
